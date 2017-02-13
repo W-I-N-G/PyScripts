@@ -1,2 +1,10 @@
 ## Python files
 *.pyc
+*checkpoint*
+
+## Misc
+*$$$*
+
+## Doxygen
+html*
+latex*

@@ -14,7 +14,7 @@
 #-------------------------------------------------------------------------------------------------------------#
 def binIntegration(edges,data,edgeLoc="low"):
     """
-    Integrates binned data.  Can be used, for example, to converts from differential flux to flux. 
+    Integrates binned data.  Can be used, for example, to convert from differential flux to flux. 
     Valid for binned data with edge or midpoint values if properly specified in the inputs.
     
     Parameters

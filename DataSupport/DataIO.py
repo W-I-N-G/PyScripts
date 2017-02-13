@@ -10,8 +10,10 @@
 #
 #######################################################################################################
 
+import re
+
 #-------------------------------------------------------------------------------------------------------------#
-def readDelimitedDataFile(path,delimiter=" ",header=0,breakText=""):
+def readDelimitedDataFile(path,delimiter=" +",header=0,breakText=""):
     """
     Reads in a set of columated data and returns the results.  
    
@@ -23,8 +25,8 @@ def readDelimitedDataFile(path,delimiter=" ",header=0,breakText=""):
     Optional
     ========
     delimiter : string
-        Indicator for the character used to separate columns.  
-        [Deafult = " "]
+        Indicator for the character used to separate columns.  Uses the re.split delimiter definitions.
+        [Deafult = " +"]
     header : integer
         The number of header lines to skip
         [Deafult = 0]
@@ -54,12 +56,10 @@ def readDelimitedDataFile(path,delimiter=" ",header=0,breakText=""):
         for line in f:
             if line.rstrip()==breakText:
                 break
-                
-            split_list=line.strip().split(delimiter)    
+            split_list=re.split(delimiter,line.strip())   
             for i in range(0,len(split_list)):
                 if len(data)<i+1:
                     data.append([])
-                
                 data[i].append(float(split_list[i]))
 
         # Close the file

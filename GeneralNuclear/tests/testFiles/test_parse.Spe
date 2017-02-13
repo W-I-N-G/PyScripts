@@ -1,0 +1,41 @@
+$SPEC_ID:
+Cs137
+$SPEC_REM:
+DET# 2
+DETDESC# DETECTOR 2
+AP# GammaVision Version 7.01.03
+$DATE_MEA:
+02/08/2017 18:39:13
+$MEAS_TIM:
+120 132
+$DATA:
+0 8191
+       1
+      46
+     303
+     417
+     443
+     412
+     415
+     435
+     452
+     442
+     436
+     436
+     450
+     458
+     436
+$ROI:
+0
+$PRESETS:
+Live Time
+120
+0
+$ENER_FIT:
+0.187410 0.383892
+$MCA_CAL:
+3
+1.874105E-001 3.838918E-001 3.468863E-008 keV
+$SHAPE_CAL:
+3
+2.527564E+000 1.393620E-003 6.253809E-009
