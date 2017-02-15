@@ -131,13 +131,17 @@ def test_peak_counts():
     (ct,dt,a,b,c,df)=parse_spe("/home/pyne-user/Dropbox/UCB/Computational_Tools/Scripts/Python/GeneralNuclear/tests/testFiles/test_peak_counts.Spe")    
     
     #1
-    assert_almost_equal(peak_counts(np.asarray(df.index), np.asarray(df['counts']).astype(float), 1723), 65901, places=0)
+    assert_almost_equal(peak_counts(np.asarray(df.index), np.asarray(df['counts']).astype(float), 1723)[0], 65901, places=0)
+    assert_almost_equal(peak_counts(np.asarray(df.index), np.asarray(df['counts']).astype(float), 1723)[1], 258, places=0)
     
     #2
-    assert_almost_equal(peak_counts(np.asarray(df.index), np.asarray(df['counts']).astype(float), 1723.5, width=100.5), 66008, places=0)
+    assert_almost_equal(peak_counts(np.asarray(df.index), np.asarray(df['counts']).astype(float), 1723.5, width=100.5)[0], 66008, places=0)
+    assert_almost_equal(peak_counts(np.asarray(df.index), np.asarray(df['counts']).astype(float), 1723.5, width=100.5)[1], 258, places=0)
     
     #3
-    assert_almost_equal(peak_counts(df.index, df.counts.astype(float), 1723, width=100), 66007, places=0)
+    assert_almost_equal(peak_counts(df.index, df.counts.astype(float), 1723, width=100)[0], 66007, places=0)
+    assert_almost_equal(peak_counts(df.index, df.counts.astype(float), 1723, width=100)[1], 258, places=0)
     
     #4
-    assert_almost_equal(peak_counts(df.index, df.counts.astype(float), 1376, width=100), 0, places=0)
+    assert_almost_equal(peak_counts(df.index, df.counts.astype(float), 1376, width=100)[0], 0, places=0)
+    assert_almost_equal(peak_counts(df.index, df.counts.astype(float), 1376, width=100)[1], 0, places=0)

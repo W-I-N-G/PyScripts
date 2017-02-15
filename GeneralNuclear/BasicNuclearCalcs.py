@@ -12,11 +12,23 @@
 from math import log, pi, sqrt, exp
 
 #-------------------------------------------------------------------------------------------------------------#
-def irrad_population(halfLife, n, t, rate, src, vol, tt=0.0):
+def production_decay(halfLife, n, t, rate, src, vol=1, tt=0.0):
     """!
     @ingroup BasicNuclearCalcs
     Calculates the initial population of atoms post-irradiation.  Accounts for production and decay during the 
-    irradiation period. It optionally can calculate the number of atoms after a cool down period.
+    irradiation period. It optionally can calculate the number of atoms after a cool down period. Care should be taken with
+    the units used for the input parameters as the function can handle both experimental and simulated calculations that use 
+    different units and normalizations. \n\n
+    
+    The two typical sets of units for the production terms are: \n
+    
+    Eqn:        \f$n(t)=\phi * \Sigma * V * t \f$ \n
+    Local Vars: n0= src * rate * vol * t \n
+    Units:      [atoms]=[\f$\frac{n}{cm^2 s}\f$][\f$\frac{1}{cm}\f$][\f$cm^3\f$][s] \n\n
+    
+    Eqn:        \f$n(t)=I * F4Tally (\phi * \Sigma) * V * t \f$ \n
+    Local Vars: n0= src * rate * vol * t \n
+    Units:      [atoms]=[\f$\frac{n}{cm^2 s}\f$][\f$\frac{1}{cm}\f$][\f$cm^3\f$][s] \n
 
     @param halfLife: <em> integer or float </em>   \n
         The half life of the decaying isotope in seconds  \n
@@ -25,7 +37,8 @@ def irrad_population(halfLife, n, t, rate, src, vol, tt=0.0):
     @param t: <em> integer or float </em> \n
         Irradiation time in seconds \n
     @param rate: <em> integer or float </em>  \n
-        The reaction rate in rx per src per cm$^3$ \n
+        The reaction rate. The reaction rate is typically in rx per src per cm$^3$ if volume is specified 
+        (for simulated output for example) or cm$^-1$ ($Sigma$) if experimental data is used.  n\n
     @param src: <em> integer or float </em>  \n
         The source strength in n per sec \n
     @param vol: <em> integer or float </em>  \n

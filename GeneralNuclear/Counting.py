@@ -16,7 +16,7 @@ import peakutils
 import numpy as np
 import pandas as pd
 
-from math import log10
+from math import log10, sqrt
 from datetime import datetime
 
 #-------------------------------------------------------------------------------------------------------------#
@@ -50,7 +50,7 @@ def volume_solid_angle(rSrc, rDet, det2src):
     return gcf
 
 #-------------------------------------------------------------------------------------------------------------#
-def germanium_rel_eff(e,a=0.06009234,b=0.03441747,c=0.50475985,d=0.00284131):
+def germanium_eff(e,a=0.03279101,b=0.01462466,c=0.15007903,d=-0.0159574):
     """!
     @ingroup Counting
     Calculates the relative efficiency of a germanium detector based on [ref needed]. Defaults are for detector
@@ -131,6 +131,7 @@ def peak_counts(channels, counts, peak, width=25):
         The total width of the channel space to be fit.  This should be several times the FWHM resolution \n
                     
     @return \e float: The number of counts in the peak \n
+            \e float: The uncertainty of counts in the peak \n
     """
     
     # Fit the peak
@@ -143,8 +144,10 @@ def peak_counts(channels, counts, peak, width=25):
     for c,r in zip(counts[peak-width:peak+width],roiFit):
         if r<max(roiMap*counts[peak-width:peak+width]):
             baseLine.append(c)
+    
     if len(baseLine)>0:
-        return (roiCounts-(len(roiFit)-len(baseLine))*float(sum(baseLine))/len(baseLine))
+        baseCounts=(len(roiFit)-len(baseLine))*float(sum(baseLine))/len(baseLine)
+        return (roiCounts-baseCounts), sqrt(sqrt(roiCounts)**2+sqrt(baseCounts)**2)
     else:
-        return 0
+        return (0,0)
     

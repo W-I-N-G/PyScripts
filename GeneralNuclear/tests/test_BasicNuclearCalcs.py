@@ -12,7 +12,7 @@ from nose.tools import assert_equal, assert_not_equal, assert_raises, raises, \
     assert_almost_equal, assert_true, assert_false, assert_in
     
 #-------------------------------------------------------------------------------------------------------------#
-def test_irrad_population():    
+def test_production_decay():    
     """!
     1) Test given irradiation time << half life
     2) Test given low production and short half life
@@ -24,25 +24,25 @@ def test_irrad_population():
     """
     
     #1
-    assert_almost_equal(irrad_population(1E10, 0, 100, 1E-3, 1E6, 1), 1E5, places=0)
+    assert_almost_equal(production_decay(1E10, 0, 100, 1E-3, 1E6, 1), 1E5, places=0)
     
     #2
-    assert_almost_equal(irrad_population(1E-3, 0, 100, 1E-3, 1E3, 1), 0.001442695, places=6)
+    assert_almost_equal(production_decay(1E-3, 0, 100, 1E-3, 1E3, 1), 0.001442695, places=6)
     
     #3
-    assert_almost_equal(irrad_population(1E10, 0, 100, 1E-3, 1E6, 1, 1E10), 0.5E5, places=0)
+    assert_almost_equal(production_decay(1E10, 0, 100, 1E-3, 1E6, 1, 1E10), 0.5E5, places=0)
     
     #4
-    assert_almost_equal(irrad_population(100, 1000, 100, 1E-3, 1E3, 1), 572.1347520, places=6)
+    assert_almost_equal(production_decay(100, 1000, 100, 1E-3, 1E3, 1), 572.1347520, places=6)
     
     #5
-    assert_raises(TypeError,irrad_population,'one', 1000, 100, 1E-3, 1E3, 1)
-    assert_raises(AssertionError,irrad_population,-100, 1000, 100, 1E-3, 1E3, 1)
-    assert_raises(AssertionError,irrad_population,100, -1000, 100, 1E-3, 1E3, 1)
-    assert_raises(AssertionError,irrad_population,100, 1000, -100, 1E-3, 1E3, 1)
-    assert_raises(AssertionError,irrad_population,100, 1000, 100, -1E-3, 1E3, 1)
-    assert_raises(AssertionError,irrad_population,100, 1000, 100, 1E-3, -1E3, 1)
-    assert_raises(AssertionError,irrad_population,100, 1000, 100, 1E-3, 1E3, -1)
+    assert_raises(TypeError,production_decay,'one', 1000, 100, 1E-3, 1E3, 1)
+    assert_raises(AssertionError,production_decay,-100, 1000, 100, 1E-3, 1E3, 1)
+    assert_raises(AssertionError,production_decay,100, -1000, 100, 1E-3, 1E3, 1)
+    assert_raises(AssertionError,production_decay,100, 1000, -100, 1E-3, 1E3, 1)
+    assert_raises(AssertionError,production_decay,100, 1000, 100, -1E-3, 1E3, 1)
+    assert_raises(AssertionError,production_decay,100, 1000, 100, 1E-3, -1E3, 1)
+    assert_raises(AssertionError,production_decay,100, 1000, 100, 1E-3, 1E3, -1)
     
 #-------------------------------------------------------------------------------------------------------------#
 def test_decay():    
