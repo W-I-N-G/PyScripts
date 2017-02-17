@@ -54,12 +54,12 @@ def test_volume_solid_angle():
     assert_raises(AssertionError,volume_solid_angle, 2.54, 2.54, 0)
     
     #7
-    assert_raises(AssertionError,volume_solid_angle,"two", 2.54, 1)
-    assert_raises(AssertionError,volume_solid_angle,2.0, "two", 1)
-    assert_raises(AssertionError,volume_solid_angle,2.0, 2, "one")
+    assert_raises(TypeError,volume_solid_angle,"two", 2.54, 1)
+    assert_raises(TypeError,volume_solid_angle,2.0, "two", 1)
+    assert_raises(TypeError,volume_solid_angle,2.0, 2, "one")
 
 #-------------------------------------------------------------------------------------------------------------#
-def test_germanium_rel_eff():
+def test_germanium_eff():
     """!
     1) Test that ouput equals hand calculated values
     2) Test that each input can be left off the input param list
@@ -69,35 +69,35 @@ def test_germanium_rel_eff():
     """
     
     #1
-    assert_almost_equal(germanium_rel_eff(100),0.11163, places=4)
-    assert_almost_equal(germanium_rel_eff(1000),0.0226547, places=4)
-    assert_almost_equal(germanium_rel_eff(1500),0.01695982, places=4)
-    assert_almost_equal(germanium_rel_eff(2000),0.0148119, places=4)
+    assert_almost_equal(germanium_eff(100),0.1114059, places=4)
+    assert_almost_equal(germanium_eff(1000),0.0244010, places=4)
+    assert_almost_equal(germanium_eff(1500),0.0148815, places=4)
+    assert_almost_equal(germanium_eff(2000),0.00872368, places=4)
     
     #2
-    assert_almost_equal(germanium_rel_eff(250,a=0.05),-0.035522, places=4)
-    assert_almost_equal(germanium_rel_eff(500,a=0.05,b=0.03),0.057884, places=4)
-    assert_almost_equal(germanium_rel_eff(750,a=0.05,b=0.03,c=0.60),0.1333897, places=4)
-    assert_almost_equal(germanium_rel_eff(1000,a=0.05,b=0.03,c=0.60,d=0.003),0.13997, places=4)
+    assert_almost_equal(germanium_eff(250,a=0.05),0.2381597, places=4)
+    assert_almost_equal(germanium_eff(500,a=0.05,b=0.03),-0.1997285, places=4)
+    assert_almost_equal(germanium_eff(750,a=0.05,b=0.03,c=0.60),0.1337239, places=4)
+    assert_almost_equal(germanium_eff(1000,a=0.05,b=0.03,c=0.60,d=0.003),0.13997, places=4)
     
     #3
-    assert_almost_equal(germanium_rel_eff(250,a=0),-0.535522, places=4)
-    assert_almost_equal(germanium_rel_eff(500,a=0.05,b=0),0.8675755, places=4)
-    assert_almost_equal(germanium_rel_eff(750,a=0.05,b=0.03,c=0),-0.362568, places=4)
-    assert_almost_equal(germanium_rel_eff(1000,a=0.05,b=0.03,c=0.60,d=0),0.13997, places=4) 
+    assert_almost_equal(germanium_eff(250,a=0),-0.2618402, places=4)
+    assert_almost_equal(germanium_eff(500,a=0.05,b=0),0.6099624, places=4)
+    assert_almost_equal(germanium_eff(750,a=0.05,b=0.03,c=0),-0.362234, places=4)
+    assert_almost_equal(germanium_eff(1000,a=0.05,b=0.03,c=0.60,d=0),0.13997, places=4) 
     
     #4
-    assert_almost_equal(germanium_rel_eff(250,a=-0.05),-1.035522, places=4)
-    assert_almost_equal(germanium_rel_eff(500,a=0.05,b=-0.03),1.6772665, places=4)
-    assert_almost_equal(germanium_rel_eff(750,a=0.05,b=0.03,c=-0.60),-0.8585275, places=4)
-    assert_almost_equal(germanium_rel_eff(1000,a=0.05,b=0.03,c=0.60,d=-0.003),0.140030, places=4)
+    assert_almost_equal(germanium_eff(250,a=-0.05),-0.7618402, places=4)
+    assert_almost_equal(germanium_eff(500,a=0.05,b=-0.03),1.4196534, places=4)
+    assert_almost_equal(germanium_eff(750,a=0.05,b=0.03,c=-0.60),-0.8581933, places=4)
+    assert_almost_equal(germanium_eff(1000,a=0.05,b=0.03,c=0.60,d=-0.003),0.140030, places=4)
     
     #5
-    assert_raises(TypeError,germanium_rel_eff, "five")
-    assert_raises(TypeError,germanium_rel_eff, 5, "five")
-    assert_raises(TypeError,germanium_rel_eff, 5, 5, "five")
-    assert_raises(TypeError,germanium_rel_eff, 5, 5, 5, "five")
-    assert_raises(TypeError,germanium_rel_eff, 5, 5, 5, 5, "five")
+    assert_raises(TypeError,germanium_eff, "five")
+    assert_raises(TypeError,germanium_eff, 5, "five")
+    assert_raises(TypeError,germanium_eff, 5, 5, "five")
+    assert_raises(TypeError,germanium_eff, 5, 5, 5, "five")
+    assert_raises(TypeError,germanium_eff, 5, 5, 5, 5, "five")
     
 
 #-------------------------------------------------------------------------------------------------------------#
@@ -145,3 +145,25 @@ def test_peak_counts():
     #4
     assert_almost_equal(peak_counts(df.index, df.counts.astype(float), 1376, width=100)[0], 0, places=0)
     assert_almost_equal(peak_counts(df.index, df.counts.astype(float), 1376, width=100)[1], 0, places=0)
+    
+#-------------------------------------------------------------------------------------------------------------#
+def test_foil_count_time():
+    """!
+    1) Test output given a known results
+    2) Test exceptions
+    """  
+    
+    #1
+    assert_almost_equal(foil_count_time(0.01, 54000, 548.104260, 0.0151888013272, background=0.01, units='Bq')[0], 1254.519433, places=6)
+    assert_almost_equal(foil_count_time(0.01, 16200, 1714.110718, 0.0499603363655, background=0.01, units='Bq')[0], 118.3467643, places=6)
+    assert_almost_equal(foil_count_time(0.01, 128160, 46.425931, 0.0150494914458, background=0.01, units='Bq')[0], 17054.945721, places=6)
+    assert_almost_equal(foil_count_time(0.01, 128160, 46.425931, 0.0150494914458, background=0.01, units='Bq')[1], 2072.133205, places=6)
+    assert_almost_equal(foil_count_time(0.01, 128160, 46.425931, 0.0150494914458, units='Bq')[1], 599.099768, places=6)
+    
+    #2
+    assert_raises(AssertionError,foil_count_time,2, 128160, 46.425931, 0.0150494914458, background=0.01, units='Bq')
+    assert_raises(AssertionError,foil_count_time,0.01, -128160, 46.425931, 0.0150494914458, background=0.01, units='Bq')
+    assert_raises(AssertionError,foil_count_time,0.01, 128160, -46.425931, 0.0150494914458, background=0.01, units='Bq')
+    assert_raises(AssertionError,foil_count_time,0.01, 128160, 46.425931, 1.0150494914458, background=0.01, units='Bq')
+    assert_raises(AssertionError,foil_count_time,0.01, 128160, 46.425931, 0.0150494914458, background=-0.01, units='Bq')
+    assert_raises(AssertionError,foil_count_time,"One", 128160, 46.425931, 0.0150494914458, background=0.01, units='Bq')

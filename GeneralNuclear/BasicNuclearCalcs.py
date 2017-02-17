@@ -90,7 +90,7 @@ def decay(halfLife, n, t, units='uCi'):
         n=n*1E-6*3.7E10
     elif units=="Ci":
         n=n*3.7E10
-    elif units != "Bq" or units != "atoms":
+    elif units != "Bq" and units != "atoms":
         print "WARNING: Unknown activity units specified.  Valid specfications are: 'uCi', 'Ci', or 'Bq', or 'atoms'. \
                Decay calculations are not to be trusted."
         
@@ -130,7 +130,8 @@ def get_halflife(decayConst):
 def activity(halfLife, n, t=0):
     """!
     @ingroup BasicNuclearCalcs
-    Calculates the activity of a given isotope with n atoms at time t after production.  
+    Calculates the activity of a given isotope with n atoms at time t after production.  An initial activity can
+    be specified instead of the initial number of atoms. 
    
     @param halfLife: <em> integer or float </em> \n
         The half life of the decaying isotope in seconds \n
