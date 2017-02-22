@@ -16,7 +16,8 @@ from datetime import datetime
 
 from Counting import volume_solid_angle, germanium_eff, germanium_eff_exp, \
                      parse_spe, simple_peak_counts, foil_count_time, \
-                     optimal_count_plan, germanium_eff_poly, get_peak_windows
+                     optimal_count_plan, germanium_eff_poly, get_peak_windows, \
+                     ge_bincounts, ge_peakcounts, ge_peakfit
 from BasicNuclearCalcs import fractional_solid_angle, production_decay, \
                               get_decay_const
 
@@ -290,28 +291,27 @@ def test_simple_peak_counts():
 def test_get_peak_windows():
     """!
     1) Test output given a known result
-    2) 
     """
 
     #1
     peaks = [138, 160, 171, 182, 195, 210, 291, 302, 418, 720, 789, 800, 869, \
              927, 1007, 1018, 1138]
     window = get_peak_windows(peaks)
-    assert_equal(window[210][0],190)
-    assert_equal(window[210][1],276)
-    assert_equal(window[1018][0],998)
-    assert_equal(window[1018][1],1118)
-    assert_equal(window[1138][0],1038)
-    assert_equal(window[1138][1],1238)
+    assert_equal(window[210][0], 190)
+    assert_equal(window[210][1], 276)
+    assert_equal(window[1018][0], 998)
+    assert_equal(window[1018][1], 1118)
+    assert_equal(window[1138][0], 1038)
+    assert_equal(window[1138][1], 1238)
     window = get_peak_windows(peaks, maxWindow=200)
-    assert_equal(window[1138][0],1033)
-    assert_equal(window[1138][1],1338)
+    assert_equal(window[1138][0], 1033)
+    assert_equal(window[1138][1], 1338)
     window = get_peak_windows(peaks, minWindow=25)
-    assert_equal(window[210][0],185)
-    assert_equal(window[210][1],276)
+    assert_equal(window[210][0], 185)
+    assert_equal(window[210][1], 276)
     window = get_peak_windows(peaks, peakWidth=25)
-    assert_equal(window[210][0],190)
-    assert_equal(window[210][1],266)
+    assert_equal(window[210][0], 190)
+    assert_equal(window[210][1], 266)
 
 #------------------------------------------------------------------------------#
 def test_foil_count_time():
@@ -401,3 +401,67 @@ def test_optimal_count_plan():
                                                  units='Bq', toMinute=True)
     assert_almost_equal(countTime/3600., 1.551667e+01, places=4)
     assert_equal(countOrder, (u'AlP', u'In', u'AlA', u'Zr', u'Ni'))
+
+#------------------------------------------------------------------------------#
+def test_ge_bincounts():
+    """!
+    1) Test output given a known results
+    """
+
+    #1
+    popt = [3.94602821e+04, 2.10508654e+02, 1.15260930e+00, 9.91773636e+03,
+            5.87023867e-01, 4.36188949e+01, 6.12161338e-25, 6.16224021e-22,
+            4.95472887e+02]
+    assert_almost_equal(ge_bincounts(211, popt[0], popt[1], popt[2], popt[3],
+                                     popt[4], popt[5], popt[6], popt[7],
+                                     popt[8]), 36845, places=0)
+    assert_almost_equal(ge_bincounts(225, popt[0], popt[1], popt[2], popt[3],
+                                     popt[4], popt[5], popt[6], popt[7],
+                                     popt[8]), 495, places=0)
+    assert_almost_equal(ge_bincounts(210.5, popt[0], popt[1], popt[2], popt[3],
+                                     popt[4], popt[5], popt[6], popt[7],
+                                     popt[8]), 40592, places=0)
+
+#------------------------------------------------------------------------------#
+def test_ge_peakcounts():
+    """!
+    1) Test output given a known results
+    """
+
+    #1
+    popt = [3.94602821e+04, 2.10508654e+02, 1.15260930e+00, 9.91773636e+03,
+            5.87023867e-01, 4.36188949e+01, 6.12161338e-25, 6.16224021e-22,
+            4.95472887e+02]
+    assert_almost_equal(ge_peakcounts(popt[0], popt[2], popt[3], popt[4]),
+                                     122760, places=0)
+    popt = [2.97765913e+03, 7.19623998e+02, 1.45522198e+00, 5.40907602e+01,
+            3.91082545e+00, 5.66662031e+01, 1.22482908e-24, 1.22181909e-18,
+            8.87775645e+01]
+    assert_almost_equal(ge_peakcounts(popt[0], popt[2], popt[3], popt[4]),
+                                     11617, places=0)
+
+#------------------------------------------------------------------------------#
+def test_ge_peakfit():
+    """!
+    1) Test output given a known results
+    """
+
+    #1
+    counts = np.array([606., 634., 574., 629., 732., 750., 588., 590., 549.,
+    487., 530., 511., 493., 574., 617., 1137., 2367., 3398.,
+    5202., 17133., 36568., 36479., 17904., 5143., 1444., 659., 546.,
+    656., 828., 818., 705., 536., 504., 473., 461., 433.,
+    469., 460., 485., 530., 485., 473., 449., 431., 442.,
+    417., 435., 470., 508., 478., 488., 538., 467., 470.,
+    476., 469., 432., 509., 472., 448., 454., 523., 518.,
+    510., 463., 447., 446., 502., 445., 434., 451., 475.,
+    546., 534., 590., 618., 525., 540., 439., 435., 416.,
+    428., 462., 477., 511., 526.])
+    channels = np.array(range(190, 276))
+    countStd = np.sqrt(np.asarray(counts))
+
+    assert_almost_equal(ge_peakfit(channels, counts, countStd)[0],
+                        122760, places=0)
+    assert_almost_equal(ge_peakfit(channels, counts)[0], 122760, places=0)
+    assert_almost_equal(ge_peakfit(channels, counts)[1], 350, places=0)
+    assert_almost_equal(ge_peakfit(channels, counts)[2], 31.997, places=3)

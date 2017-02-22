@@ -13,6 +13,8 @@ This can involve foil activation analysis, detection of unknown sources, etc.
 @date 21Feb17
 """
 
+import os
+import sys
 import peakutils
 
 import numpy as np
@@ -23,9 +25,14 @@ from math import sqrt, ceil
 from datetime import datetime
 from itertools import permutations
 from scipy.integrate import quad
+from scipy.special import gamma
+from scipy.optimize import curve_fit
 from BasicNuclearCalcs import activity, decay, fractional_solid_angle
-from Math import gauss, smeared_step, skew_gauss, quadratic
 
+sys.path.insert(0, os.path.abspath(
+ '/home/pyne-user/Dropbox/UCB/Computational_Tools/Scripts/Python/DataAnalysis'))
+from Math import gauss, smeared_step, skew_gauss, quadratic
+from Stats import red_chisq
 #------------------------------------------------------------------------------#
 def volume_solid_angle(rSrc, rDet, det2src):
     """!
@@ -228,6 +235,7 @@ def simple_peak_counts(channels, counts, peak, width=25):
                    counts[peak-width:peak+width], center_only=False)
     roiFit = peakutils.peak.gaussian(channels[peak-width:peak+width], a, b, c)
     roiCounts = sum(roiFit)
+
     # Determine the continuum to subtract
     roiMap = [0 if item > 0.1 else 1 for item in roiFit]
     baseLine = []
@@ -244,21 +252,79 @@ def simple_peak_counts(channels, counts, peak, width=25):
         return (0, 0)
 
 #------------------------------------------------------------------------------#
-def ge_peakfit(x, p1, p2, p3, p4, p5, p6, p7, p8, p9):
+def ge_bincounts(x, p1, p2, p3, p4, p5, p6, p7, p8, p9):
+    """!
+    @ingroup Counting
+    Calculate the total number of counts at a specified bin location given the
+    peak fitting parameters.
+
+    "Analaytic Peak Fitting for Gamma-Ray Spectrum Analysis with Ge Detectors"
+    by L.C. Longoria
+
+    This formulation dropped the upper exponential and added a quadratic term
+    to the background.
+
+    @param x: <em> scalar float/integer </em> \n
+        Channel number \n
+    @param p1: \e float \n
+        Gaussian amplitude \n
+    @param p2: \e float \n
+        Gaussian centroid \n
+    @param p3: \e float \n
+        Gaussian width \n
+    @param p4: \e float \n
+        Skew Gaussian amplitude  \n
+    @param p5: \e float \n
+        Skew Gaussian range \n
+    @param p6: \e float \n
+        Smeared step amplitude \n
+    @param p7: \e float \n
+        Background quadratic term \n
+    @param p8: \e float \n
+        Background linear term \n
+    @param p9: \e float \n
+        Background offset \n
+
+    @return \e float: The number of counts in the specified bin
+    line \n
+    """
     f1 = gauss(x, p1, p2, p3)
     f2 = smeared_step(x, p2, p3, p6)
     f3 = skew_gauss(x, p2, p3, p4, p5)
-    f5 = quadratic(p7, p8, p9)
+    f5 = quadratic(x, p7, p8, p9)
     return f1+f2+f3+f5
 
 #------------------------------------------------------------------------------#
-def ge_peakfit_peakcounts(p1, p3, p4, p5):
+def ge_peakcounts(p1, p3, p4, p5):
+    """!
+    @ingroup Counting
+    Calculate the total number of counts at a specified peak given the peak
+    fitting parameters using an analytic function for the integration from:
+
+    "Analaytic Peak Fitting for Gamma-Ray Spectrum Analysis with Ge Detectors"
+    by L.C. Longoria
+
+    This formulation dropped the upper exponential term.
+
+    @param x: <em> scalar float/integer </em> \n
+        Channel number \n
+    @param p1: \e float \n
+        Gaussian amplitude \n
+    @param p3: \e float \n
+        Gaussian width \n
+    @param p4: \e float \n
+        Skew Gaussian amplitude  \n
+    @param p5: \e float \n
+        Skew Gaussian range \n
+
+    @return \e float: The number of counts in the specified peak \n
+    """
     t1 = p1*p3*(2*np.pi)**0.5
     t2 = p3*p4*(gamma(p5)*gamma(4-p5))/6.
     return t1+t2
 
 #------------------------------------------------------------------------------#
-def peak_counts(func, channels, counts, countStd=None):
+def ge_peakfit(channels, counts, countStd=None):
     """!
     @ingroup Counting
     Calculate the total number of counts in a peak. Fits to an the 9 parameter
@@ -267,11 +333,14 @@ def peak_counts(func, channels, counts, countStd=None):
     "Analaytic Peak Fitting for Gamma-Ray Spectrum Analysis with Ge Detectors"
     by L.C. Longoria
 
-    by first assumming a gaussian fit.  The implementation used here adds a 
-    quadratic background and removed the higher exponential (f4).
+    by first assumming a gaussian fit.
 
-    @param func: \e function \n
-        The peak fit function used. 
+    The fits used could be expanded within this framework to test better
+    algorithms.  This framework could also be adapted to provide an adaptable
+    fit that covers some of the corner cases.
+
+    Currently only handles one peak at a time.
+
     @param channels: <em> array/list of integers or floats </em> \n
         The channel index locations for the region of interest to fit \n
     @param counts: <em> array/list of integers or floats </em> \n
@@ -281,38 +350,36 @@ def peak_counts(func, channels, counts, countStd=None):
 
     @return \e float: The number of counts in the peak \n
             \e float: The uncertainty of counts in the peak \n
+            \e float: \f$\frac{\chi^2}{\nu}\f$ \n
     """
-    assert hasattr(func, '__call__'), 'Invalid function handle'
 
     # Get initial estimate of fitting parameters by simple gaussian fit
     (a, b, c) = peakutils.peak.gaussian_fit(channels, counts,
                                             center_only=False)
-    
+
     # Calculate standard deviations if not supplied
     if countStd == None:
-        countStd =  np.sqrt(np.asarray(counts))
-    
-    # Fit to specified function
-    popt, pcov = curve_fit(lambda x, p3, p4, p5, p6, p7, p8, p9: \
-                        ge_peakfit(x, a, b, p3, p4, p5, p6, p7, p8, p9),
-                        channels, counts, bounds=(0,5E5), sigma=countStd,
-                        absolute_sigma=True,
-                        p0=[abs(c), a/20.,  abs(c)/4., a/100., .01, 1, 10])
+        countStd = np.sqrt(np.asarray(counts))
 
-    popt=np.insert(popt,0,b)
-    popt=np.insert(popt,0,a)
-    
-    total = test10(popt[0], popt[2], popt[3], popt[4])
-    modelCounts = count_peaks(channels)
-    print "{:.2f}   {:.2f}".format(energy[pk], tmp)
-    
-    redChiSq = red_chisq(counts[window[pk][0]:window[pk][1]], modelCounts, countStd, freeParams=9)
-    print redChiSq
-    
-    modelCounts = peakutils.peak.gaussian(channels[window[pk][0]:window[pk][1]], a, b, c)
-    redChiSq = red_chisq(counts[window[pk][0]:window[pk][1]], modelCounts, countStd, freeParams=3)
-    print redChiSq
-    print "\n"
+    # Fit using initial estimates from gaussian fit
+    popt, pcov = curve_fit(lambda x, p3, p4, p5, p6, p7, p8, p9: \
+                        ge_bincounts(x, a, b, p3, p4, p5, p6, p7, p8, p9),
+                        channels, counts, bounds=(0, 5E5), sigma=countStd,
+                        absolute_sigma=True,
+                        p0=[abs(c), a/20., abs(c)/4., a/100., .01, 1, 10])
+    popt = np.insert(popt, 0, b)
+    popt = np.insert(popt, 0, a)
+    peakCounts = ge_peakcounts(popt[0], popt[2], popt[3], popt[4])
+    peakStd = sqrt(peakCounts)
+
+    # Get the bin by bin model data and perform chi squared test
+    modelCounts = []
+    for ch in channels:
+        modelCounts.append(ge_bincounts(ch, popt[0], popt[1], popt[2], popt[3],
+                                  popt[4], popt[5], popt[6], popt[7], popt[8]))
+    redChiSq = red_chisq(counts, modelCounts, countStd, freeParams=9)
+
+    return peakCounts, peakStd, redChiSq
 
 #------------------------------------------------------------------------------#
 def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20):
@@ -332,12 +399,12 @@ def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20):
         The minimum half window size to be used.  This should be greater than
         peakWidth \n
 
-    @return <em> dictionary of lists </em>: [lower channel, upper channel] 
+    @return <em> dictionary of lists </em>: [lower channel, upper channel]
         of the window \n
     """
     windows = {}
     for i in range(0, len(ch)):
-        windows[ch[i]] = [0,0]
+        windows[ch[i]] = [0, 0]
         if i == 0 and i != len(ch)-1:
             windows[ch[i]][0] = ch[i] - maxWindow
             if (ch[i] + maxWindow) > (ch[i+1] - peakWidth):
@@ -367,9 +434,9 @@ def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20):
                                        max(ch[i]-peakWidth-ch[i-1], minWindow)
             else:
                 windows[ch[i]][0] = ch[i] - maxWindow
-        
-    return windows   
-    
+
+    return windows
+
 #------------------------------------------------------------------------------#
 def foil_count_time(sigma, halfLife, init, efficiency, background=0.001, \
                     units="atoms"):
