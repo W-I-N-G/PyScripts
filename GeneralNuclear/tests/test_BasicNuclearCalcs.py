@@ -1,4 +1,4 @@
-# This test suite evaluates all of the corner and edge cases for the functions and classes in Counting.    
+# This test suite evaluates all of the corner and edge cases for the functions and classes in BasicnuclearCalcs.    
 #
 # @author James Bevins
 #
@@ -6,8 +6,6 @@
 
 from BasicNuclearCalcs import *
 
-import nose
-from nose.plugins.skip import SkipTest
 from nose.tools import assert_equal, assert_not_equal, assert_raises, raises, \
     assert_almost_equal, assert_true, assert_false, assert_in
     
