@@ -10,7 +10,7 @@ This can involve foil activation analysis, detection of unknown sources, etc.
 
 @author James Bevins
 
-@date 21Feb17
+@date 25Feb17
 """
 
 import os
@@ -52,7 +52,7 @@ def volume_solid_angle(rSrc, rDet, det2src):
     @return \e float: The gcf for the given configuration \n
     """
     assert det2src >= 1.0, "ERROR: The distance between the source and detector\
-                          must be at least 1.0 cm."
+                          ({} cm) must be at least 1.0 cm.".format(det2src)
     assert rSrc >= 0 and rDet >= 0, "ERROR: The radius of the source and/or\
                           detector cannot be less than 0.0 cm."
 
@@ -119,7 +119,6 @@ def germanium_eff_exp(e, a=6.00768900e-01, b=5.84842744e-01, c=3.11757094e-11,
     @return \e float: The relative efficienty for the given configuration and
     line \n
     """
-
     return 1 / (a*e**b + c*e**d)
 
 #------------------------------------------------------------------------------#
@@ -208,6 +207,58 @@ def parse_spe(fname):
 
     except IOError:
         print "WARNING: File does not exist."
+
+#------------------------------------------------------------------------------#
+def find_best_fit(*args, **kwargs):
+    """!
+    @ingroup Counting
+    Finds the best fitting function according to \f$\frac{\chi^2}{\nu}\f$
+
+    @args \n
+        N potential fitting functions
+    @kwargs \n
+        Keyword arguments for the fitting routine scipy curve_fit
+
+    @return \e function: The best functional fit
+    @return \e list: The parameters for the best functional fit
+    @return \e list: The covariance for the best functional fit
+    @return \e float: The \f$\frac{\chi^2}{\nu}\f$ of the best functional
+        fit
+    """
+
+    bestChiSq = np.inf
+    # Catch when all cases fail
+    try:
+        for func in args:
+            # Test for correct arguments
+            try:
+                popt, pcov = curve_fit(func, **kwargs)
+                yModel = map(lambda y: func(y, *popt), kwargs['xdata'])
+                # Catch if user didn't provide sigma values
+                try:
+                    redChiSq = red_chisq(kwargs['ydata'], yModel,
+                                         kwargs['sigma'],
+                                         freeParams=len(popt))
+                except KeyError:
+                    redChiSq = red_chisq(kwargs['ydata'], yModel,
+                                         freeParams=len(popt))
+            except TypeError:
+                print ("ERROR: Either the incorrect minimum arguments or an "
+                       "incorrect argument was specified for the ",
+                       "scipy.optimize.curve_fit function.")
+            except RuntimeError:
+                pass
+            
+            # Save results if a new best fit found
+            if redChiSq < bestChiSq:
+                bestFunc = func
+                params = popt
+                covar = pcov
+                bestChiSq = redChiSq
+        return bestFunc, params, covar, bestChiSq
+    except UnboundLocalError:
+        print "WARNING: No fit was found."
+        return None, [], [], 0.0
 
 #------------------------------------------------------------------------------#
 def simple_peak_counts(channels, counts, peak, width=25):
@@ -321,10 +372,13 @@ def ge_peakcounts(p1, p3, p4, p5):
     """
     t1 = p1*p3*(2*np.pi)**0.5
     t2 = p3*p4*(gamma(p5)*gamma(4-p5))/6.
-    return t1+t2
+    if t2 > t1:
+        return t1
+    else:
+        return t1+t2
 
 #------------------------------------------------------------------------------#
-def ge_peakfit(channels, counts, countStd=None):
+def ge_peakfit(channels, counts, countStd=[], peakWidth=20):
     """!
     @ingroup Counting
     Calculate the total number of counts in a peak. Fits to an the 9 parameter
@@ -341,12 +395,14 @@ def ge_peakfit(channels, counts, countStd=None):
 
     Currently only handles one peak at a time.
 
-    @param channels: <em> array/list of integers or floats </em> \n
+    @param channels: <em> array of integers or floats </em> \n
         The channel index locations for the region of interest to fit \n
-    @param counts: <em> array/list of integers or floats </em> \n
+    @param counts: <em> array of integers or floats </em> \n
         The number of counts in a given channel \n
-    @param countStd: <em> array/list of integers or floats </em> \n
+    @param countStd: <em> array of integers or floats </em> \n
         The 1\f$\sigma\f$ uncertainty in the counts for each bin \n
+    @param countStd: <em> integer or float </em> \n
+        The full width at base of the peak in channels \n
 
     @return \e float: The number of counts in the peak \n
             \e float: The uncertainty of counts in the peak \n
@@ -354,19 +410,21 @@ def ge_peakfit(channels, counts, countStd=None):
     """
 
     # Get initial estimate of fitting parameters by simple gaussian fit
-    (a, b, c) = peakutils.peak.gaussian_fit(channels, counts,
-                                            center_only=False)
-
+    peak = peakutils.indexes(counts, thres=0.25, min_dist=10)[0]
+    (a, b, c) = peakutils.peak.gaussian_fit(channels[peak-peakWidth: 
+                                                  peak+peakWidth],
+                                            counts[peak-peakWidth: 
+                                                  peak+peakWidth], center_only=False)
     # Calculate standard deviations if not supplied
-    if countStd == None:
+    if len(countStd) != len(counts):
         countStd = np.sqrt(np.asarray(counts))
-
+        countStd[countStd == 0] = 1
     # Fit using initial estimates from gaussian fit
     popt, pcov = curve_fit(lambda x, p3, p4, p5, p6, p7, p8, p9: \
                         ge_bincounts(x, a, b, p3, p4, p5, p6, p7, p8, p9),
                         channels, counts, bounds=(0, 5E5), sigma=countStd,
                         absolute_sigma=True,
-                        p0=[abs(c), a/20., abs(c)/4., a/100., .01, 1, 10])
+                        p0=[abs(c), a/20., abs(c)/10., a/100., .01, 1, 10])
     popt = np.insert(popt, 0, b)
     popt = np.insert(popt, 0, a)
     peakCounts = ge_peakcounts(popt[0], popt[2], popt[3], popt[4])
@@ -375,8 +433,7 @@ def ge_peakfit(channels, counts, countStd=None):
     # Get the bin by bin model data and perform chi squared test
     modelCounts = []
     for ch in channels:
-        modelCounts.append(ge_bincounts(ch, popt[0], popt[1], popt[2], popt[3],
-                                  popt[4], popt[5], popt[6], popt[7], popt[8]))
+        modelCounts.append(ge_bincounts(ch, *popt))
     redChiSq = red_chisq(counts, modelCounts, countStd, freeParams=9)
 
     return peakCounts, peakStd, redChiSq
@@ -439,7 +496,7 @@ def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20):
 
 #------------------------------------------------------------------------------#
 def foil_count_time(sigma, halfLife, init, efficiency, background=0.001, \
-                    units="atoms"):
+                    units="atoms", precision=30):
     """!
     @ingroup Counting
     Approximate the optimal foil counting time using an average count rate
@@ -460,6 +517,9 @@ def foil_count_time(sigma, halfLife, init, efficiency, background=0.001, \
     @param units: \e string \n
        This determines the units provided and whether initial atoms or
        activity is provided. Options are "uCi", "Ci", or "Bq", or "atoms"  \n
+    @param precision: \e integer \n
+       The precision to which to determine the count time. This stops the
+       iterative integration once the count time is less than this value. \n
 
     @return \e float: The number of counts in the peak \n
             \e float: The uncertainty of counts in the peak \n
@@ -490,11 +550,18 @@ def foil_count_time(sigma, halfLife, init, efficiency, background=0.001, \
         else:
             return decay(halfLife, init, t, units)*efficiency
 
+    # If the activity is too high, then the dead time will be high; warn user.
+    # This assumes 5% dead time on a germanium as determined with a Co60 and 
+    # Eu152 src; it is not perfect.
+    if units == "atoms" and activity(halfLife, init, 0) > 12000 or \
+       units != "atoms" and decay(halfLife, init, 0, units) > 12000:
+        print "WARNING: The Dead time may be > 5% with this set-up."
+
     # Approximate the optimal foil counting time using an average count rate
     tf = 1
     diff = 1000
     try:
-        while diff > 1:
+        while diff > precision:
             prevt = tf
             s = quad(integrand, 0, tf)[0]/tf
             tf = ((sqrt(s+background)+sqrt(background))**2/(sigma**2*s**2)) \
@@ -508,8 +575,9 @@ def foil_count_time(sigma, halfLife, init, efficiency, background=0.001, \
         return 1E99, 1E99
 
 #------------------------------------------------------------------------------#
-def optimal_count_plan(foilParams, handleTime=60, detR=5, det2FoilDist=100, \
-                       background=0.001, units="Bq", toMinute=False):
+def optimal_count_plan(foilParams, handleTime=60, detR=5, background=0.001,
+                       units="Bq", toMinute=False,  funcDict={},
+                       funcParamDict={}, func=germanium_eff_exp, **kwargs):
     """!
     @ingroup Counting
     Calculates the best order for counting a set of foils by considering all
@@ -520,7 +588,8 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, det2FoilDist=100, \
     This function assumes that you have a correctly labeled dataframe.  The
     required columns are:
 
-    ['foil','gammaEnergy','halfLife','initActivity','activityUncert','foilR']
+    ['foil','gammaEnergy','halfLife','initActivity','activityUncert',
+    'det2FoilDist','relStat','foilR']
 
     There can be additional columns.
 
@@ -533,10 +602,6 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, det2FoilDist=100, \
     @param detR: <em> integer or float </em> \n
         The detector radius. Used to correct solid angle for large foils.
         The default values are sufficient if dealing w/ point source foils. \n
-    @param det2FoilDist: \e float \n
-        The distance between the detector and foil. Used to correct solid angle
-        for large foils. The default values are sufficient if dealing w/ point
-        source foils. \n
     @param background: <em> integer or float </em> \n
         The background count rate at the line of interest \n
     @param units: \e string \n
@@ -545,12 +610,33 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, det2FoilDist=100, \
     @param toMinute: \e boolean \n
        If this flag is set to True, then the count times are rounded to the
        nearest minute. Results returned are still in seconds. \n
+    @param funcDict: <em> disctionary of functions </em> \n
+       If multiple positions are used, this is a dictionary of the fitting 
+       function used vs position where the key is the position name, and the
+       value is the fitting function. funcParamDict must be specified if this 
+       argument is used. Priority is given to the dictionaries if both methods
+       are given as inputs. \n
+    @param funcParamDict: <em> disctionary of functions </em> \n
+       If multiple positions are used, this is a dictionary of the fitting 
+       function parameters vs position where the key is the position name,
+       and the value is the N fitting paramters for the function specified in
+       funcDict. funcDict must be specified if this argument is used.\n
+    @param func: \e function \n
+       The effieciency fitting function to calculate the detector absolute
+       efficiency. This argument is only valid if there is only one counting
+       position being counsidered. Do not specify funcDict and funcParamDict
+       if this argument is used. Do specify the kwargs appropriate for this 
+       function. \n
+    @kwargs \n
+        Keyword arguments for the fitting function. This argument is only
+        valid if there is only one counting position being counsidered.
 
     @return \e dataframe: a copy of the original dataframe with a count time
                          column added (in seconds)  \n
             \e list: a list of the counting order for the foils considered \n
             \e float: the total count time in seconds
     """
+    assert hasattr(func, '__call__'), 'Invalid function handle'
 
     totalTime = np.inf
 
@@ -567,6 +653,7 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, det2FoilDist=100, \
         # Initialize local variables
         df = cp.deepcopy(foilParams)
         df['countTime'] = 0.0
+        df['countOrder'] = 0
         df['countActivity'] = cp.deepcopy(df['initActivity'])
         df['countActUncert'] = cp.deepcopy(df['activityUncert'])
         tmpTotal = 0.0
@@ -575,10 +662,28 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, det2FoilDist=100, \
         for f in order:
             ct = 0
             for rx in df.groupby("foil").get_group(f).index:
-                absEff = germanium_eff(df.at[rx, 'gammaEnergy']) \
-                 *(volume_solid_angle(df.at[rx, 'foilR'], detR, \
-                                      det2FoilDist) \
-                 / fractional_solid_angle(detR, det2FoilDist))
+                pos = df.at[rx, 'det2FoilDist']
+                df.at[rx, 'countOrder'] = max(df['countOrder']) + 1
+
+                if funcDict != {} and funcParamDict != {}:
+                    absEff = funcDict[pos](df.at[rx, 'gammaEnergy'],
+                                           *funcParamDict[pos]) \
+                     *(volume_solid_angle(df.at[rx, 'foilR'], detR, pos)) \
+                     / fractional_solid_angle(detR, pos) 
+                elif funcDict != {} and funcParamDict != {}:
+                    print ("WARNING: Both funcDict and funcParamDict were not ",
+                          "specified. A single efficieny fit will be used.")
+                elif kwargs:
+                    absEff = func(df.at[rx, 'gammaEnergy'], **kwargs) \
+                     *(volume_solid_angle(df.at[rx, 'foilR'], detR, pos)) \
+                     / fractional_solid_angle(detR, pos)
+                else:
+                    print ("WARNING: Kwargs were not specified for the fitting ",
+                          "function. Function defaults will be used, but may ",
+                          "not be appropriate.")
+                    absEff = func(df.at[rx, 'gammaEnergy']) \
+                     *(volume_solid_angle(df.at[rx, 'foilR'], detR, pos)) \
+                     / fractional_solid_angle(detR, pos)
                 try:
                     if toMinute:
                         df.at[rx, 'countTime'] = ceil(foil_count_time( \
@@ -598,8 +703,11 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, det2FoilDist=100, \
                                           units='Bq')[0]
                 except AssertionError:
                     df.at[rx, 'countTime'] = 1E99
+                    break
+
                 if df.at[rx, 'countTime'] > ct:
                     ct = df.at[rx, 'countTime']
+                df.at[rx, 'countTime'] = max(df['countTime']) + 1
 
             # Update total counting time for this order
             tmpTotal += ct
@@ -624,6 +732,7 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, det2FoilDist=100, \
             bestOrder = cp.copy(order)
             totalTime = tmpTotal
             bestDF = cp.deepcopy(df)
-
-    return bestDF.sort_values(by='countTime'), bestOrder, totalTime
+    
+    
+    return bestDF.sort_values(by='countOrder'), bestOrder, totalTime
 

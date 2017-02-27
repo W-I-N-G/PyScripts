@@ -371,7 +371,8 @@ def test_optimal_count_plan():
 
     # Rename columns for ease of access and add in the statistics column
     foilParams.columns = ['foil', 'product', 'gammaEnergy', 'br',
-                             'normalization', 'rxRate', 'rxRateSigma', 'foilR',
+                             'relStat', 'det2FoilDist', 'normalization',
+                             'rxRate', 'rxRateSigma', 'foilR',
                              'weightFrac', 'volume', 'halfLife']
     foilParams['relStat'] = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
 
@@ -396,10 +397,9 @@ def test_optimal_count_plan():
 
     (countDF, countOrder, countTime) = optimal_count_plan(foilParams,
                                                  handleTime=60, detR=3.245,
-                                                 det2FoilDist=1,
                                                  background=0.01,
                                                  units='Bq', toMinute=True)
-    assert_almost_equal(countTime/3600., 1.551667e+01, places=4)
+    assert_almost_equal(countTime/3600., 1.5183333e+01, places=4)
     assert_equal(countOrder, (u'AlP', u'In', u'AlA', u'Zr', u'Ni'))
 
 #------------------------------------------------------------------------------#
@@ -465,3 +465,49 @@ def test_ge_peakfit():
     assert_almost_equal(ge_peakfit(channels, counts)[0], 122760, places=0)
     assert_almost_equal(ge_peakfit(channels, counts)[1], 350, places=0)
     assert_almost_equal(ge_peakfit(channels, counts)[2], 31.997, places=3)
+
+#------------------------------------------------------------------------------#
+def test_find_best_fit():
+    """!
+    1) Test output given a known results
+    2) Test exceptions
+    """
+
+    #1
+    from Counting import find_best_fit
+    xdata = [661.6570, 1173.2300, 1332.4900, 121.7000, 244.7000, 344.2900,
+             778.9000, 964.0600, 1112.0800, 1408.0100, 80.9979, 276.4000,
+             356.0100]
+    ydata = [0.040357, 0.022411, 0.019816, 0.107016, 0.057928, 0.060360,
+             0.028430, 0.020030, 0.018157, 0.014638, 0.124845, 0.053590,
+             0.049498]
+    sigma = [0.000470, 0.000261, 0.000231, 0.001247, 0.000675, 0.000703,
+             0.000331, 0.000233, 0.000212, 0.000171, 0.001455, 0.000624,
+             0.000577]
+
+    (func, params, cov, chiSq) = find_best_fit(germanium_eff,
+                                               germanium_eff_exp,
+                                               xdata=xdata, ydata=ydata,
+                                               sigma=sigma,
+                                               absolute_sigma=True)
+    assert_almost_equal(params[0], 0.03702171, places=4)
+    assert_almost_equal(params[3], -0.01696709, places=4)
+    assert_almost_equal(chiSq, 149.3297258, places=4)
+
+    (func, params, cov, chiSq) = find_best_fit(germanium_eff_exp,
+                                               xdata=xdata,
+                                               ydata=ydata, sigma=sigma,
+                                               absolute_sigma=True)
+    assert_almost_equal(params[3], 2.40486883e+00, places=4)
+    assert_almost_equal(chiSq, 149.608705114, places=4)
+
+    (func, params, cov, chiSq) = find_best_fit(germanium_eff, xdata=xdata,
+                                               ydata=ydata)
+    assert_almost_equal(params[3], -0.00769284, places=4)
+    assert_almost_equal(chiSq, 2.99276413274e-05, places=4)
+
+    #2
+    assert_equal(find_best_fit(germanium_eff, xdata=xdata)[1], [])
+    assert_equal(find_best_fit(germanium_eff, xdata=xdata, ydata=ydata,
+                               fun=False)[3], 0.0)
+    
