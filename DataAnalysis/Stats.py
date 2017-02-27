@@ -20,7 +20,7 @@ from sympy import symbols, diff
 from math import sqrt
 
 #------------------------------------------------------------------------------#
-def red_chisq(yData, yMod, standDev=None, freeParams=2):
+def red_chisq(yData, yMod, standDev=[], freeParams=2):
     """!
     @ingroup Stats
 
@@ -43,8 +43,16 @@ def red_chisq(yData, yMod, standDev=None, freeParams=2):
     @return \e float: The \f$\frac{\chi^2}{\nu}\f$ statistic \n
     """
 
+    # Enable the use of lists as input
+    if type(yData) == list:
+        yData = np.asarray(yData)
+    if type(yMod) == list:
+        yMod = np.asarray(yMod)
+    if type(standDev) == list:
+        standDev = np.asarray(standDev)
+        
     # Chi-square statistic
-    if standDev == None:
+    if len(standDev) != len(yData):
         chisq = np.sum((yData-yMod)**2)
     else:
         chisq = np.sum(((yData-yMod)/standDev)**2)
