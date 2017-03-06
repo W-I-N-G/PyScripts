@@ -215,15 +215,15 @@ def find_best_fit(*args, **kwargs):
     Finds the best fitting function according to \f$\frac{\chi^2}{\nu}\f$
 
     @args \n
-        N potential fitting functions
+        N potential fitting functions \n
     @kwargs \n
-        Keyword arguments for the fitting routine scipy curve_fit
+        Keyword arguments for the fitting routine scipy curve_fit \n
 
-    @return \e function: The best functional fit
-    @return \e list: The parameters for the best functional fit
-    @return \e list: The covariance for the best functional fit
+    @return \e function: The best functional fit \n
+    @return \e list: The parameters for the best functional fit \n
+    @return \e list: The covariance for the best functional fit \n
     @return \e float: The \f$\frac{\chi^2}{\nu}\f$ of the best functional
-        fit
+        fit \n
     """
 
     bestChiSq = np.inf
