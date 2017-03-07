@@ -2,13 +2,13 @@
 @file Support/Utilities.py
 @package Support
 
-@defgroup Utilies Utilitites
+@defgroup Utilities Utilities
 
 @brief General support utilities.
 
 @author James Bevins
 
-@date 24Feb17
+@date 7Mar17
 """
 
 import os
@@ -29,7 +29,7 @@ def pause():
         pass
     
 #------------------------------------------------------------------------------#
-def remove_file(fileName):
+def removeFile(fileName):
     """!
     @ingroup Utilities
     Test for files existance; deletes that file if it exists.
