@@ -14,6 +14,7 @@
 #------------------------------------------------------------------------------#
 class calibParams(object):
     """!
+    @ingroup Root
     This class stores the calibration parameters used for energy claibration
     and gausssian smearing of response matrices for root and unfolding
     algorithms.
