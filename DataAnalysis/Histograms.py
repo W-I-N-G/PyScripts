@@ -13,6 +13,7 @@
 """
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 
 #------------------------------------------------------------------------------#
 class histogram(object):
@@ -23,14 +24,16 @@ class histogram(object):
     """
 
     ##
-    def __init__(self, edges=[], data=[], midPtLoc=[], midPtData=[],
-                 uncertainty=[]):
+    def __init__(self, name='', edges=None, data=None, midPtLoc=None,
+                 midPtData=None, uncertainty=None):
         """!
         Constructor to build the calibParams class. If path is specified, the
         object attributes are populated.
 
         @param self: <em> object pointer </em> \n
             The object pointer. \n
+        @param name: \e string \n
+            An identifier for the histogram. \n
         @param edges: <em> list or array of integers or floats </em> \n
             The upper and lower edges for each bin.  If there are N bins,
             there should be 2N+1 edges. \n
@@ -48,6 +51,9 @@ class histogram(object):
             there should be N midpoint uncertainties. \n
         """
 
+        ## @var label: \e string
+        # A string identifier for the class instance.
+        self.label = name
         ## @var xEdges: <em> list or array of integers or floats </em>
         # The upper and lower edges for each bin.  If there are N bins, there
         # will be 2N+1 edges.
@@ -106,7 +112,7 @@ class histogram(object):
         header = header + tmp
         return header
 
-    def buildHisto(self, edges, data, uncert=[], edgeLoc="low"):
+    def buildHisto(self, edges, data, uncert=None, edgeLoc="low", name=''):
         """!
         Builds a histogram object from input tabulated data.
 
@@ -128,6 +134,7 @@ class histogram(object):
          "Valid specifications for the edge location are 'low', 'mid', or 'up'."
 
         # Initialize variables
+        self.label = name
         self.sigma = uncert
         self.xEdges = []
         self.yValues = []
@@ -139,7 +146,7 @@ class histogram(object):
             if len(edges) == len(data):
                 try:
                     edges.append(edges[-1]+(edges[-1]-edges[-2]))
-                except TypeError:
+                except TypeError, KeyError:
                     edges = edges.tolist()
                     edges.append(edges[-1]+(edges[-1]-edges[-2]))
         if edgeLoc == "up":
@@ -168,67 +175,83 @@ class histogram(object):
 
         self.xEdges.append(edges[-1])
         self.yValues.append(0.0)
-              
-    def plotHisto(self, **kwargs):
+
+    def plot(self, logX=False, logY=False, title='', xLabel='', yLabel='',
+                  *args):
         """!
         Builds a histogram object from input tabulated data.
 
         @param self: <em> histogram pointer </em> \n
             The histogram pointer. \n
-        @param args: <em> list of histograms </em> \n
-            An optional list of additional histograms to plot where the
-            keyword will be used for the data set label. \n
-        """   
-        
+        @param logX: \e boolean \n
+            Flag to use a log scale on the x axis \n
+        @param logY: \e boolean \n
+            Flag to use a log scale on the y axis \n
+        @param title: \e string \n
+            An optional specification for the plot title. \n
+        @param xLabel: \e string \n
+            An optional specification for the x axis label. \n
+        @param yLabel: \e string \n
+            An optional specification for the y axis label. \n
+        @param args: <em> histograms </em> \n
+            An optional list of additional histograms to plot. \n
+        """
+
         # Allow use of Tex sybols
         plt.rc('text', usetex=True)
 
         # Set up figure
         #fig = plt.figure()
-        fig = plt.figure(figsize=(10,6))
-        #ax1 = fig.add_subplot(111)
+        fig = plt.figure(figsize=(11, 8))
         ax1 = fig.add_axes([0.1, 0.1, 0.8, 0.85])
 
         # Preset data set format scheme
-        s=10
-        linewidth=['2.5']
-        marker=['.','o','v','^','<','>','1','2','3','4','8','s','p','*','h','H','+','x','d','D']
-        linestyle=['-','--',':','-.']
-        dashes=[[10, 0.1],[10, 5, 10, 5],[10,2.5,1,2.5]]
-        minorLocator = MultipleLocator(1)
-
-        # Set Line color cycle
-        ax1.set_color_cycle(['k', 'k', 'k', 'k'])
+        linewidth = ['2.5']
+        linestyle = ['-', '--', ':', '-.']
+        dashes = [[10, 0.1], [10, 5, 10, 5], [0.5, 0.5], [10, 2.5, 1, 2.5]]
+        ax1.set_prop_cycle(color=['k', 'k'])
 
         # Set axes
-        ax1.axis([0, 25, 0.0001, 1.5*max(heprowHisto.yValues)])
-        #ax1.set_xscale('log')
-        ax1.set_yscale('log')
+        ax1.axis([0, max(self.xEdges), 0.5*min(y for y in self.yValues if y > 0),
+                  1.5*max(self.yValues)])
+        if logX:
+            ax1.set_xscale('log')
+        if logY:
+            ax1.set_yscale('log')
 
         # Set axes labels and plot title.
-        ax1.set_title('\\textbf{16MeV D Breakup on Ta}', fontsize=18, weight="bold")    
-        ax1.set_xlabel('\\textbf{Energy [MeV]}', fontsize=18, weight="bold")
-        ax1.set_ylabel('\\textbf{Neutron PDF}', fontsize=18, weight="bold")
-        ax1.tick_params(axis='both', which='major', labelsize=18, width=2)
-        ax1.tick_params(axis='both', which='minor', width=2)
+        ax1.set_title('{}'.format(title), fontsize=30, weight="bold")
+        ax1.set_xlabel('{}'.format(xLabel), fontsize=22, weight='bold')
+        ax1.set_ylabel('{}'.format(yLabel), fontsize=22, weight="bold")
+        ax1.tick_params(axis='both', which='major', labelsize=18, width=3)
+        ax1.tick_params(axis='both', which='minor', width=3)
+        minorLocator = MultipleLocator(1)
         ax1.xaxis.set_minor_locator(minorLocator)
 
-        # Add data set to plot
-        ax1.errorbar(heprowHisto.midPtX, heprowHisto.midPtY, yerr=heprowHisto.sigma, marker=None, linestyle='None')
-        ax1.plot(heprowHisto.xEdges, heprowHisto.yValues, linewidth=linewidth[0], linestyle=linestyle[0], 
-                 marker=None,label="HEPROW Unfolded", dashes=dashes[0]) 
-        ax1.errorbar(nsdHisto.midPtX, nsdHisto.midPtY, yerr=nsdHisto.sigma, marker=None, linestyle='None')
-        ax1.plot(nsdHisto.xEdges, nsdHisto.yValues, linewidth=linewidth[0], linestyle=linestyle[1], 
-                 marker=None,label="NSD Unfolded", dashes=dashes[1]) 
-        ax1.plot(meuldersHisto.xEdges, meuldersHisto.yValues, linewidth=linewidth[0], linestyle=linestyle[2], 
-                 label="Meulders") 
-        #ax1.plot(loneHisto.xEdges, loneHisto.yValues, linewidth=linewidth[0], linestyle=linestyle[3], 
-        #         label="Lone", dashes=dashes[2]) 
+        # Add self to plot
+        ax1.plot(self.xEdges, self.yValues, linewidth=linewidth[0],
+                 linestyle=linestyle[0], dashes=dashes[0], marker=None,
+                 label=self.label)
+        if self.sigma != None:
+            ax1.errorbar(self.midPtX, self.midPtY, yerr=self.sigma, marker=None,
+                         linestyle='None', capsize=4, capthick=1.5)
 
+        # Plot additional histograms, if specified
+        num = 1
+        for arg in args:
+            ax1.plot(arg.xEdges, arg.yValues, linewidth=linewidth[0],
+                     linestyle=linestyle[num%4], dashes=dashes[num%4],
+                     marker=None, label=arg.label)
+            if arg.sigma != []:
+                ax1.errorbar(arg.midPtX, arg.midPtY, yerr=arg.sigma,
+                             marker=None, linestyle='None', capsize=4,
+                             capthick=1.5)
+            num += 1
 
         # Add and locate legend
-        leg = ax1.legend()
-        plt.legend(borderaxespad=0.75, loc=1, fontsize=16, handlelength=5, borderpad=0.5,\
-                    labelspacing=0.75, fancybox=True, framealpha=0.5, numpoints=1);
+        if self.label != '':
+            plt.legend(borderaxespad=0.75, loc=1, fontsize=16, handlelength=5,
+                       borderpad=0.5, labelspacing=0.75, fancybox=True,
+                       framealpha=0.5, numpoints=1)
 
         plt.show()

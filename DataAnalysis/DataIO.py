@@ -90,4 +90,4 @@ def readGru(path, **kwargs):
     loc = df[df.ix[:, 0] == dataStop].index.tolist()[0]
     df = df.drop(df.index[loc:])
 
-    return df.convert_objects(convert_numeric=True)
+    return df.apply(pd.to_numeric)
