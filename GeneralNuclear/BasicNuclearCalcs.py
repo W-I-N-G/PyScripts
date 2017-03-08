@@ -95,7 +95,7 @@ def decay(halfLife, n, t, units='uCi'):
         If the initial activity is specified, this determines the units
         provided.  Options are "uCi", "Ci", or "Bq", or "atoms" \n
 
-    @return float: The number of atoms (or activity in Bq) after decay time t \n
+    @return \e float: The number of atoms (or activity in Bq) after decay time t \n
     """
     assert halfLife > 0, "The half life specified must be greater than zero."
     assert n >= 0, "The initial number of atoms specified must be greater than \
@@ -160,7 +160,7 @@ def activity(halfLife, n, t=0):
     @param t: <em> integer or float </em> \n
         Time post irradiation \n
 
-    @return float: The activity at time t in decays/s \n
+    @return \e float: The activity at time t in decays/s \n
     """
     assert halfLife > 0, "The half life specified must be greater than zero."
     assert n >= 0, "The initial number of atoms specified must be greater than \
@@ -183,7 +183,7 @@ def solid_angle(a, d):
     @param d: <em> integer or float </em> \n
         Distance from the detector to src in cm  \n
 
-    @return float: The fractional solid angle for the given configuration \n
+    @return \e float: The fractional solid angle for the given configuration \n
     """
     assert a >= 0, "The detector radius specified must be greater than or \
                   equal to zero."
@@ -203,7 +203,7 @@ def fractional_solid_angle(a, d):
     @param d: <em> integer or float </em> \n
         Distance from the detector to src in cm  \n
 
-    @return float: The fractional solid angle for the given configuration \n
+    @return \e float: The fractional solid angle for the given configuration \n
     """
 
     return solid_angle(a, d)/4.0/pi
