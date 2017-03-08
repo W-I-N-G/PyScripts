@@ -8,12 +8,10 @@
 
 @author James Bevins
 
-@date 3Mar17
+@date 7Mar17
 """
 
 import re
-
-import pandas as pd
 
 #------------------------------------------------------------------------------#
 def readDelimitedDataFile(path, delimiter=" +", header=0, breakText=""):
@@ -65,29 +63,3 @@ def readDelimitedDataFile(path, delimiter=" +", header=0, breakText=""):
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
 
     return data
-
-#------------------------------------------------------------------------------#
-def readGru(path, **kwargs):
-    """!
-    @ingroup DataIO
-    Reads in a HEPROW .gru output file and returns a pandas data frame
-    containing the low bin edges, the absolute flux data, and uncertainty.
-    This does not read the correlation coefficient matrix.
-
-    @param path: \e string \n
-        Absolute path to the file \n
-    @param kwargs: \n
-        Keyword arguments for pandas.read_table() \n
-
-    @return <em> pandas data frame </em>: A data frame containing the lower
-        bin edges, the absolute flux, and its uncertainty \n
-    """
-
-    df = pd.read_table(path, **kwargs)
-
-    # Find the row for he .gru separator for the flux and correlation matrix
-    dataStop = "*********format(16i5)*********"
-    loc = df[df.ix[:, 0] == dataStop].index.tolist()[0]
-    df = df.drop(df.index[loc:])
-
-    return df.apply(pd.to_numeric)
