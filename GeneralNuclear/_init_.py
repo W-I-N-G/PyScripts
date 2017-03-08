@@ -7,6 +7,7 @@ package are:
 
 \sa Counting
 \sa BasicNuclearCalcs
+\sa Detectors
 """
 
-__all__ = ["Counting", "BasicNuclearCalcs"]
+__all__ = ["Counting", "BasicNuclearCalcs", "Detectors"]
