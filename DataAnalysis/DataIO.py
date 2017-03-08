@@ -1,6 +1,6 @@
 """!
 @file DatAnalysis/DataIO.py
-@package Support
+@package DatAnalysis
 
 @defgroup DataIO DataIO
 
@@ -31,9 +31,8 @@ def readDelimitedDataFile(path, delimiter=" +", header=0, breakText=""):
     @param breakText: \e string \n
         Text indicating the end of the data to be read. \n
 
-    @return data: <em> list of lists <\em>
-        A nxm list where n is the number of colums of data in the input file
-        and m is the number of rows \n
+    @return <em> list of lists <\em>: A nxm list where n is the number of
+        columns of data in the input file and m is the number of rows \n
     """
 
     assert header >= 0, "Valid specifications for the number of header lines \
@@ -80,9 +79,8 @@ def readGru(path, **kwargs):
     @param kwargs: \n
         Keyword arguments for pandas.read_table() \n
 
-    @return data: <em> pandas data frame </em>
-        A data frame containing the lower bin edges, the absolute flux, and
-        its uncertainty \n
+    @return <em> pandas data frame </em>: A data frame containing the lower
+        bin edges, the absolute flux, and its uncertainty \n
     """
 
     df = pd.read_table(path, **kwargs)
@@ -92,4 +90,4 @@ def readGru(path, **kwargs):
     loc = df[df.ix[:, 0] == dataStop].index.tolist()[0]
     df = df.drop(df.index[loc:])
 
-    return df
+    return df.convert_objects(convert_numeric=True)
