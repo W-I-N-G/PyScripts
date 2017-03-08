@@ -146,7 +146,7 @@ class histogram(object):
             if len(edges) == len(data):
                 try:
                     edges.append(edges[-1]+(edges[-1]-edges[-2]))
-                except TypeError, KeyError:
+                except TypeError:
                     edges = edges.tolist()
                     edges.append(edges[-1]+(edges[-1]-edges[-2]))
         if edgeLoc == "up":
@@ -176,26 +176,41 @@ class histogram(object):
         self.xEdges.append(edges[-1])
         self.yValues.append(0.0)
 
-    def plot(self, logX=False, logY=False, title='', xLabel='', yLabel='',
-                  *args):
+    def plot(self, *args, **kwargs):
         """!
         Builds a histogram object from input tabulated data.
 
         @param self: <em> histogram pointer </em> \n
             The histogram pointer. \n
-        @param logX: \e boolean \n
-            Flag to use a log scale on the x axis \n
-        @param logY: \e boolean \n
-            Flag to use a log scale on the y axis \n
-        @param title: \e string \n
-            An optional specification for the plot title. \n
-        @param xLabel: \e string \n
-            An optional specification for the x axis label. \n
-        @param yLabel: \e string \n
-            An optional specification for the y axis label. \n
-        @param args: <em> histograms </em> \n
+        @param args: \e histograms \n
             An optional list of additional histograms to plot. \n
+        @param kwargs: <em> optional plotting inputs </em> \n
+            An optional list of additional plot options.  This is wrapped in
+            kwargs because 2.7 doesn't support args and keyword specified
+            arguements.  The options are listed as kwargs parameters below \n
+        @param logX: <em> kwargs boolean </em> \n
+            Flag to use a log scale on the x axis \n
+        @param logY: <em> kwargs boolean </em> \n
+            Flag to use a log scale on the y axis \n
+        @param title: <em> kwargs string </em> \n
+            An optional specification for the plot title. \n
+        @param xLabel: <em> kwargs string </em> \n
+            An optional specification for the x axis label. \n
+        @param yLabel: <em> kwargs string </em> \n
+            An optional specification for the y axis label. \n
         """
+
+        # Set defaults if not specified since 2.7 sucks
+        if 'logX' not in kwargs.keys():
+            kwargs['logX'] = False
+        if 'logY' not in kwargs.keys():
+            kwargs['logY'] = False
+        if 'title' not in kwargs.keys():
+            kwargs['title'] = ''
+        if 'xLabel' not in kwargs.keys():
+            kwargs['xLabel'] = ''
+        if 'yLabel' not in kwargs.keys():
+            kwargs['yLabel'] = ''
 
         # Allow use of Tex sybols
         plt.rc('text', usetex=True)
@@ -206,23 +221,26 @@ class histogram(object):
         ax1 = fig.add_axes([0.1, 0.1, 0.8, 0.85])
 
         # Preset data set format scheme
-        linewidth = ['2.5']
-        linestyle = ['-', '--', ':', '-.']
-        dashes = [[10, 0.1], [10, 5, 10, 5], [0.5, 0.5], [10, 2.5, 1, 2.5]]
+        linewidth = [2.5]
+        linestyle = ['-', '-', ':', '-.']
+        dashes = [[10, 0.1], [5, 2, 5, 2], [0.5, 0.5], [10, 2.5, 1, 2.5]]
         ax1.set_prop_cycle(color=['k', 'k'])
 
         # Set axes
-        ax1.axis([0, max(self.xEdges), 0.5*min(y for y in self.yValues if y > 0),
+        ax1.axis([0, max(self.xEdges)+1,
+                  0.5*min(y for y in self.yValues if y > 0),
                   1.5*max(self.yValues)])
-        if logX:
+        if kwargs['logX']:
             ax1.set_xscale('log')
-        if logY:
+        if kwargs['logY']:
             ax1.set_yscale('log')
 
         # Set axes labels and plot title.
-        ax1.set_title('{}'.format(title), fontsize=30, weight="bold")
-        ax1.set_xlabel('{}'.format(xLabel), fontsize=22, weight='bold')
-        ax1.set_ylabel('{}'.format(yLabel), fontsize=22, weight="bold")
+        ax1.set_title('{}'.format(kwargs['title']), fontsize=30, weight="bold")
+        ax1.set_xlabel('{}'.format(kwargs['xLabel']), fontsize=22,
+                       weight='bold')
+        ax1.set_ylabel('{}'.format(kwargs['yLabel']), fontsize=22,
+                       weight="bold")
         ax1.tick_params(axis='both', which='major', labelsize=18, width=3)
         ax1.tick_params(axis='both', which='minor', width=3)
         minorLocator = MultipleLocator(1)
