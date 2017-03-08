@@ -1,8 +1,8 @@
 """!
-@file Unfolding/DataIO.py
+@file Unfolding/HEPROW.py
 @package Unfolding
 
-@defgroup DataIO DataIO
+@defgroup HEPROW HEPROW
 
 @brief Routines support data input and output for the Bevins PyScripts package.
 
@@ -43,7 +43,7 @@ def readGru(path, **kwargs):
     return df.apply(pd.to_numeric)
 
 #------------------------------------------------------------------------------#
-def readMTX(path, **kwargs):
+def readMTX(path):
     """!
     @ingroup HEPROW
     Reads in a HEPROW .MTX covariance output file and returns a the sqrt of the
@@ -82,7 +82,7 @@ def readMTX(path, **kwargs):
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
 
     # Determine the standard deviation
-    data =  np.sqrt(np.diag(np.asarray(data).astype(float))) \
+    data = np.sqrt(np.diag(np.asarray(data).astype(float))) \
             * chi2.isf(1 - .68, bins)
 
     return data
