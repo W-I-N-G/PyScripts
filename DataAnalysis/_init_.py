@@ -7,6 +7,8 @@ and I/O.
 \sa Stats
 \sa DataIO
 \sa DataManipuation
+\sa Math
+\sa Histograms
 """
 
-__all__ = ["Stats", "DataIO", "DataManipulation"]
+__all__ = ["Stats", "DataIO", "DataManipulation", "Math", "Histograms"]
