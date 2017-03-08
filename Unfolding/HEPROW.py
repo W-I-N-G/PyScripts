@@ -83,6 +83,6 @@ def readMTX(path):
 
     # Determine the standard deviation
     data = np.sqrt(np.diag(np.asarray(data).astype(float))) \
-            * chi2.isf(1 - .68, bins)
+            * np.sqrt(chi2.isf(1 - .68, bins))
 
     return data
