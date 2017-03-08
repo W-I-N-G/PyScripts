@@ -20,7 +20,6 @@ class calibParams(object):
     algorithms.
     """
 
-
     ##
     def __init__(self, path=''):
         """!

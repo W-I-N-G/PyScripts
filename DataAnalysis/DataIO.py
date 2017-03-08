@@ -1,6 +1,6 @@
 """!
-@file DatAnalysis/DataIO.py
-@package DatAnalysis
+@file DataAnalysis/DataIO.py
+@package DataAnalysis
 
 @defgroup DataIO DataIO
 

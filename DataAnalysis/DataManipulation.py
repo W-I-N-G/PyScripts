@@ -1,6 +1,6 @@
 """!
-@file DatAnalysis/DataManipulation.py
-@package DatAnalysis
+@file DataAnalysis/DataManipulation.py
+@package DataAnalysis
 
 @defgroup DataManipulation DataManipulation
 
