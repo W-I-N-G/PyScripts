@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
 #------------------------------------------------------------------------------#
-class histogram(object):
+class Histogram(object):
     """!
     @ingroup Histograms
     The class creates a histogram object representing the data.  This defines
@@ -112,7 +112,7 @@ class histogram(object):
         header = header + tmp
         return header
 
-    def buildHisto(self, edges, data, uncert=None, edgeLoc="low", name=''):
+    def build_histo(self, edges, data, uncert=None, edgeLoc="low", name=''):
         """!
         Builds a histogram object from input tabulated data.
 
