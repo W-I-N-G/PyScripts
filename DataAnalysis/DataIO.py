@@ -14,7 +14,7 @@
 import re
 
 #------------------------------------------------------------------------------#
-def readDelimitedDataFile(path, delimiter=" +", header=0, breakText=""):
+def read_delimited_data_file(path, delimiter=" +", header=0, breakText=""):
     """!
     @ingroup DataIO
     Reads in a column major dataset and and returns the results.

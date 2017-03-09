@@ -17,7 +17,7 @@ import pandas as pd
 from scipy.stats import chi2
 
 #------------------------------------------------------------------------------#
-def read_Gru(path, **kwargs):
+def readGru(path, **kwargs):
     """!
     @ingroup HEPROW
     Reads in a HEPROW .gru output file and returns a pandas data frame
@@ -43,7 +43,7 @@ def read_Gru(path, **kwargs):
     return df.apply(pd.to_numeric)
 
 #------------------------------------------------------------------------------#
-def read_MTX(path):
+def readMTX(path):
     """!
     @ingroup HEPROW
     Reads in a HEPROW .MTX covariance output file and returns a the sqrt of the

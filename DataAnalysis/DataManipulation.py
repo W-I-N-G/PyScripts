@@ -12,7 +12,7 @@
 """
 
 #------------------------------------------------------------------------------#
-def binIntegration(edges, data, edgeLoc="low"):
+def bin_integration(edges, data, edgeLoc="low"):
     """!
     @ingroup DataManipulation
 
