@@ -95,7 +95,8 @@ def decay(halfLife, n, t, units='uCi'):
         If the initial activity is specified, this determines the units
         provided.  Options are "uCi", "Ci", or "Bq", or "atoms" \n
 
-    @return \e float: The number of atoms (or activity in Bq) after decay time t \n
+    @return \e float: The number of atoms (or activity in Bq) after decay time
+        t \n
     """
     assert halfLife > 0, "The half life specified must be greater than zero."
     assert n >= 0, "The initial number of atoms specified must be greater than \
@@ -191,6 +192,27 @@ def solid_angle(a, d):
                   equal to zero."
 
     return 2.0*pi*(1.0-d/sqrt(d**2+a**2))
+
+#------------------------------------------------------------------------------#
+def solid_angle_approx(dist, area):
+    """!
+    @ingroup BasicNuclearCalcs
+    Sets the solid angle using the approximation of \f$ \frac{A}{d^2} \f$
+    valid for d >> A.
+
+    @param dist: <em> integer or float </em> \n
+        Distance from the detector to src in cm  \n
+    @param area: <em> integer or float </em> \n
+        Detector face in cm\f$^2\f$ \n
+
+    @return \e float: The fractional solid angle for the given configuration \n
+    """
+    assert area >= 0, "The detector area specified must be greater than or \
+                  equal to zero."
+    assert dist >= 0, "The distance to src specified must be greater than or \
+                  equal to zero."
+
+    return area/dist**2
 
 #------------------------------------------------------------------------------#
 def fractional_solid_angle(a, d):
