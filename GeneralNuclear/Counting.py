@@ -495,6 +495,65 @@ def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20):
     return windows
 
 #------------------------------------------------------------------------------#
+def counts(initActivity, halfLife, countTime, units='Bq', countUnits='s'):
+    """!
+    @ingroup Counting
+    Determine the number of counts over a set counting interval assuming no
+    background.
+
+    @param initActivity: <em> integer or float </em> \n
+        The initial activity.  The default units are Bq but can be changed by
+        setting the units flag. \n
+    @param halfLife: <em> integer or float </em> \n
+        The half life of the decaying isotope in seconds \n
+    @param countTime: <em> integer or float </em> \n
+        The counting interval in default units of seconds. This can be changed
+        by setting the countUnits flag. \n
+    @param units: \e string \n
+       This determines the units for the activity. Options are "uCi", "Ci",
+       or "Bq".  \n
+    @param countUnits: \e string \n
+       This determines the units provided for the count time. Options are 
+       "s", "h", "d", or "y".  \n
+
+    @return \e float: The number of counts \n
+    """
+    assert halfLife > 0, "The halfLife must be greater than zero."
+    assert countTime > 0, "The countTime must be greater than zero."
+    assert activity >= 0, "The initial activity must be greater than zero."
+
+    # Get  count time into seconds
+    if countUnits == 'h':
+        countTime = countTime*3600
+    elif countUnits == 'd':
+        countTime = countTime*24*3600
+    elif countUnits == 'y':
+        countTime = countTime*365*24*3600
+    elif countUnits != 's':
+        print "WARNING: Invalid countUnits specified. Assuming seconds."
+
+    # Get activity in Bq
+    if units == "uCi":
+        initActivity = initActivity*1E-6*3.7E10
+    elif units == "Ci":
+        initActivity = initActivity*3.7E10
+    elif units != "Bq":
+        print "WARNING: Invalid activity units specified. Assuming Bq."
+
+    def integrand(t):
+        """ !
+        Define the activity integrand.
+
+        @param t: <em> integer or float </em> \n
+            The total decay time in seconds \n
+
+        @return \e float: The decays observed \n
+        """
+        return decay(halfLife, initActivity, t, units='Bq')
+
+    return quad(integrand, 0, countTime)[0]
+    
+#------------------------------------------------------------------------------#
 def foil_count_time(sigma, halfLife, init, efficiency, background=0.001, \
                     units="atoms", precision=30):
     """!
@@ -735,4 +794,105 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, background=0.001,
     
     
     return bestDF.sort_values(by='countOrder'), bestOrder, totalTime
+
+#------------------------------------------------------------------------------#
+def channel_statistics(df, countTime, detR=5, units='Bq', 
+                       countUnits='s', func=None, **kwargs):
+    """!
+    @ingroup Counting
+    Calculates the counting statistics achieved for all of the channels of a
+    given foil assuming a set counting time.  Uses simple integration of the
+    activity to get the counts over the period.
+
+    This does take into account the detector efficiency if a efficiency
+    function and the matching arguments are provided.  If they are not
+    provided, the counts returned will be the total counts into 4PI.
+
+    This function assumes that you have a correctly labeled dataframe.  The
+    required columns for use with a detector efficiency function are:
+
+    ['foil','gammaEnergy','halfLife','initActivity','activityUncert',
+    'det2FoilDist', 'foilR']
+
+    Otherwise, only the following columns are required:
+
+    ['foil','gammaEnergy','halfLife','initActivity','activityUncert']
+
+    There can be additional columns.
+
+    @param df: \e dataframe \n
+        A dataframe containing all of the required data for the count time
+        calculation.  NOTE: the columns must be labeled ['foil', 'gammaEnergy',
+        'halfLife', 'initActivity', 'activityUncert', 'foilR']. \n
+    @param countTime: <em> integer or float </em> \n
+        The fixed foil count time. \n
+    @param detR: <em> integer or float </em> \n
+        The detector radius. Used to correct solid angle for large foils.
+        The default values are sufficient if dealing w/ point source foils. \n
+    @param units: \e string \n
+       This determines the units provided and whether initial atoms or
+       activity is provided. Options are "uCi", "Ci", or "Bq"  \n
+    @param countUnits: \e string \n
+       This determines the units provided for the count time. Options are 
+       "s", "h", "d", or "y".  \n
+    @param func: \e function \n
+       The effieciency fitting function to calculate the detector absolute
+       efficiency. This argument is only valid if there is only one counting
+       position being counsidered. Do not specify funcDict and funcParamDict
+       if this argument is used. Do specify the kwargs appropriate for this 
+       function. \n
+    @kwargs \n
+        Keyword arguments for the fitting function. This argument is only
+        valid if there is only one counting position being counsidered.
+
+    @return \e dataframe: a copy of the original dataframe with a count, 
+        count incertainty, and statistics column added (in fractional form) \n
+    """
+
+    if func != None:
+        assert hasattr(func, '__call__'), 'Invalid function handle'
+
+    # Get  count time into seconds
+    if countUnits == 'h':
+        countTime = countTime*3600
+    elif countUnits == 'd':
+        countTime = countTime*24*3600
+    elif countUnits == 'y':
+        countTime = countTime*365*24*3600
+    elif countUnits != 's':
+        print "WARNING: Invalid countUnits specified. Assuming seconds."
+
+    # Get activity in Bq
+    if units == "uCi":
+        df['initActivity'] = df['initActivity']*1E-6*3.7E10
+        df['activityUncert'] = df['activityUncert']*1E-6*3.7E10
+    elif units == "Ci":
+        df['initActivity'] = df['initActivity']*3.7E10
+        df['activityUncert'] = df['activityUncert']*3.7E10
+    elif units != "Bq":
+        print "WARNING: Invalid activity units specified. Assuming Bq."
+    
+    # Calculate the total counts
+    for ind in df.index:
+        if func != None:
+            df.at[ind, 'counts'] = counts(df.at[ind, 'initActivity'],
+                                       df.at[ind, 'halfLife'],
+                                       countTime)\
+                                *func(df.at[ind, 'gammaEnergy'],
+                                      **kwargs)\
+                        *(volume_solid_angle(df.at[ind, 'foilR'], detR,
+                                         df.at[ind, 'det2FoilDist']))\
+                        /fractional_solid_angle(detR, 
+                                           df.at[ind, 'det2FoilDist'])
+        else:
+            df.at[ind, 'counts'] = counts(df.at[ind, 'initActivity'],
+                                       df.at[ind, 'halfLife'],
+                                       countTime)
+        df.at[ind, 'countsUncert'] = df.at[ind, 'activityUncert']\
+                                  /df.at[ind, 'initActivity'] \
+                                  *df.at[ind, 'counts']
+        df.at[ind, 'countingStat'] = np.sqrt(df.at[ind, 'counts'])\
+                              /df.at[ind, 'counts']
+    return df
+
 

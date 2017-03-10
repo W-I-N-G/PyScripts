@@ -203,11 +203,11 @@ class FluxNormalization(object):
             The object pointer. \n
         @param path: \e string \n
             Absolute path to the file. \n
-        @param startTime: <em> integer or float <\em> \n
+        @param startTime: <em> integer or float </em> \n
             The run start time. Used when the file contains multiple runs. \n
-        @param stopTime: <em> integer or float <\em> \n
+        @param stopTime: <em> integer or float </em> \n
             The run stop time. Used when the file contains multiple runs. \n
-        @param scale: <em> integer or float <\em> \n
+        @param scale: <em> integer or float </em> \n
             Speciies the scaling to perform on the current readings. This is
             required if the readings are not in nA, and the scale factor is
             a ratio of nA to the scale used. \n
@@ -253,9 +253,9 @@ class FluxNormalization(object):
 
         @param self: <em> fluxNormalization pointer </em> \n
             The object pointer. \n
-        @param dist: <em> integer or float <\em> \n
+        @param dist: <em> integer or float </em> \n
             The distance from the source to detector in cm. \n
-        @param area: <em> integer or float <\em> \n
+        @param area: <em> integer or float </em> \n
             The cross-sectional area of the source in cm\f$^2\f$. \n
         """
 
