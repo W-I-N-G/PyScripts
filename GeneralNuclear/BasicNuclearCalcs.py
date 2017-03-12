@@ -212,7 +212,7 @@ def solid_angle_approx(dist, area):
     assert dist >= 0, "The distance to src specified must be greater than or \
                   equal to zero."
 
-    return area/dist**2
+    return area/float(dist)**2
 
 #------------------------------------------------------------------------------#
 def fractional_solid_angle(a, d):
