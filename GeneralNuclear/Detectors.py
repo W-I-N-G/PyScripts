@@ -16,7 +16,7 @@ Tools and methods that are generally useful in characterizing detector systems.
 from math import exp
 
 #------------------------------------------------------------------------------#
-def nonparalyzable_beam_dead_time(obsCountRate, deadTime):
+def nonparalyzable_dead_time(obsCountRate, tauDetector):
     """!
     @ingroup Detectors
     Calculates the true count rate given a measured count rate and the known
@@ -26,19 +26,19 @@ def nonparalyzable_beam_dead_time(obsCountRate, deadTime):
 
     @param obsCountRate: <em> integer or float </em> \n
         The recorded count rate for the system in units of [\f$s^{-1}\f$] \n
-    @param deadTime: <em> integer or float </em>  \n
+    @param tauDetector: <em> integer or float </em>  \n
         System dead time in untis of [s]  \n
 
     @return float: The actual interaction rate \n
             float: The fractional dead time \n
     """
 
-    trueRate = obsCountRate/(1.0-obsCountRate*deadTime)
+    trueRate = obsCountRate/(1.0-obsCountRate*tauDetector)
     deadTime = (trueRate-obsCountRate)/float(trueRate)
     return trueRate, deadTime
 
 #------------------------------------------------------------------------------#
-def paralyzable_dead_time(obsCountRate, deadTime):
+def paralyzable_dead_time(obsCountRate, tauDetector):
     """!
     @ingroup Detectors
     Calculates the true count rate given a measured count rate and the known
@@ -50,7 +50,7 @@ def paralyzable_dead_time(obsCountRate, deadTime):
 
     @param obsCountRate: <em> integer or float </em> \n
         The recorded count rate for the system in units of [\f$s^{-1}\f$] \n
-    @param deadTime: <em> integer or float </em>  \n
+    @param tauDetector: <em> integer or float </em>  \n
         System dead time in untis of [s]  \n
 
     @return float: The actual interaction rate \n
@@ -58,17 +58,17 @@ def paralyzable_dead_time(obsCountRate, deadTime):
     """
 
     # Create initial guess
-    trueRate = nonparalyzableDeadTime(obsCountRate, deadTime)
+    trueRate = nonparalyzableDeadTime(obsCountRate, tauDetector)
 
     # Solve iteratively
-    while abs(trueRate*exp(-trueRate*deadTime) - obsCountRate) > 1:
+    while abs(trueRate*exp(-trueRate*tauDetector) - obsCountRate) > 1:
         trueRate += 1
 
     deadTime = (trueRate-obsCountRate)/float(trueRate)
     return trueRate, deadTime
 
 #------------------------------------------------------------------------------#
-def nonparalyzable_beam_dead_time(obsCountRate, deadTime, beamPeriod):
+def nonparalyzable_beam_dead_time(obsCountRate, tauDetector, tauBeam):
     """!
     @ingroup Detectors
     Calculates the true count rate and dead time fraction using a nonparalyzable
@@ -90,9 +90,9 @@ def nonparalyzable_beam_dead_time(obsCountRate, deadTime, beamPeriod):
     @param obsCountRate: <em> integer or float </em> \n
         \f$N_{out}\f$: The recorded count rate for the system in units of
         [\f$s^{-1}\f$] \n
-    @param deadTime: <em> integer or float </em>  \n
+    @param tauDetector: <em> integer or float </em>  \n
         \f$\tau_s\f$: System dead time in untis of [s]  \n
-    @param beamPeriod: <em> integer or float </em>  \n
+    @param tauBeam: <em> integer or float </em>  \n
         \f$\tau_b\f$: The time between beam bunches in untis of [s]  \n
 
     @return float: \f$N_{in}\f$: The actual interaction rate \n
@@ -101,21 +101,21 @@ def nonparalyzable_beam_dead_time(obsCountRate, deadTime, beamPeriod):
 
     # Create initial guess
     trueRate = obsCountRate
-    n = int(deadTime/float(beamPeriod))
-    tmpObsRate = (1-exp(-trueRate*beamPeriod))/float(beamPeriod)\
-                 /(1+(1-exp(-trueRate*beamPeriod))*n)
+    n = int(tauDetector/float(tauBeam))
+    tmpObsRate = (1-exp(-trueRate*tauBeam))/float(tauBeam)\
+                 /(1+(1-exp(-trueRate*tauBeam))*n)
 
     # Solve iteratively
     while abs(tmpObsRate - obsCountRate) > 1:
         trueRate += 1
-        tmpObsRate = (1-exp(-trueRate*beamPeriod))/float(beamPeriod)\
-                     /(1+(1-exp(-trueRate*beamPeriod))*n)
+        tmpObsRate = (1-exp(-trueRate*tauBeam))/float(tauBeam)\
+                     /(1+(1-exp(-trueRate*tauBeam))*n)
 
     deadTime = (trueRate-obsCountRate)/float(trueRate)
     return trueRate, deadTime
 
 #------------------------------------------------------------------------------#
-def paralyzable_beam_dead_time(obsCountRate, deadTime, beamPeriod):
+def paralyzable_beam_dead_time(obsCountRate, tauDetector, tauBeam):
     """!
     @ingroup Detectors
     Calculates the true count rate and dead time fraction using a paralyzable
@@ -136,9 +136,9 @@ def paralyzable_beam_dead_time(obsCountRate, deadTime, beamPeriod):
     @param obsCountRate: <em> integer or float </em> \n
         \f$N_{out}\f$: The recorded count rate for the system in units of
         [\f$s^{-1}\f$] \n
-    @param deadTime: <em> integer or float </em>  \n
+    @param tauDetector: <em> integer or float </em>  \n
         \f$\tau_s\f$: System dead time in untis of [s]  \n
-    @param beamPeriod: <em> integer or float </em>  \n
+    @param tauBeam: <em> integer or float </em>  \n
         \f$\tau_b\f$: The time between beam bunches in untis of [s]  \n
 
     @return float: \f$N_{in}\f$: The actual interaction rate \n
@@ -147,10 +147,10 @@ def paralyzable_beam_dead_time(obsCountRate, deadTime, beamPeriod):
 
     # Create initial guess
     trueRate = obsCountRate
-    n = int(deadTime/float(beamPeriod))
+    n = int(tauDetector/float(tauBeam))
 
     # Solve iteratively
-    while abs(trueRate*exp(-trueRate*beamPeriod*(n+1)) - obsCountRate) > 1:
+    while abs(trueRate*exp(-trueRate*tauBeam*(n+1)) - obsCountRate) > 1:
         trueRate += 1
 
     deadTime = (trueRate-obsCountRate)/float(trueRate)
