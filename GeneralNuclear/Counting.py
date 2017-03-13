@@ -214,9 +214,9 @@ def find_best_fit(*args, **kwargs):
     @ingroup Counting
     Finds the best fitting function according to \f$\frac{\chi^2}{\nu}\f$
 
-    @args \n
+    @param args \n
         N potential fitting functions \n
-    @kwargs \n
+    @param kwargs \n
         Keyword arguments for the fitting routine scipy curve_fit \n
 
     @return \e function: The best functional fit \n
@@ -686,7 +686,7 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, background=0.001,
        position being counsidered. Do not specify funcDict and funcParamDict
        if this argument is used. Do specify the kwargs appropriate for this 
        function. \n
-    @kwargs \n
+    @param kwargs \n
         Keyword arguments for the fitting function. This argument is only
         valid if there is only one counting position being counsidered.
 
@@ -841,7 +841,7 @@ def channel_statistics(df, countTime, detR=5, units='Bq',
        position being counsidered. Do not specify funcDict and funcParamDict
        if this argument is used. Do specify the kwargs appropriate for this 
        function. \n
-    @kwargs \n
+    @param kwargs \n
         Keyword arguments for the fitting function. This argument is only
         valid if there is only one counting position being counsidered.
 
