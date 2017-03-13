@@ -157,6 +157,10 @@ class FluxNormalization(object):
             ## @var currentMonitor: \e float
             # The integrated current according to the current monitor in microA
             self.currentMonitor = 1
+            
+            ## @var runTime: \e float
+            # The integrated run time of the experiment in sec
+            self.runTime = 0
 
         ## @var currentIntegrator: \e float
         # The integrated current according to the current integrator in microA
@@ -166,6 +170,10 @@ class FluxNormalization(object):
         # The solid angle subtended by the detector
         self.solidAngle = 1
 
+        ## @var deadTime: \e float
+        # The fractional dead time of the detection system
+        self.deadTime = 0
+
     def __repr__(self):
         """!
         Object print function.
@@ -174,9 +182,10 @@ class FluxNormalization(object):
             The object pointer. \n
         """
 
-        return "ADVANTG Settings({}, {}, {})".format(self.currentMonitor,
-                                                     self.currentIntegrator,
-                                                     self.solidAngle)
+        return "Normalization Params({} s, {} uA, {} uA, {} st, {})"\
+                    .format(self.runTime, self.currentMonitor, 
+                            self.currentIntegrator, self.solidAngle,
+                            self.deadTime)
 
     def __str__(self):
         """!
@@ -186,11 +195,13 @@ class FluxNormalization(object):
             The object pointer. \n
         """
         header = ["\nNormalization Parameters"]
+        header += ["Total Run Time = {} s".format(self.runTime)]
         header += ["Current Monitor Inegrated Current = {} microA"\
                    .format(self.currentMonitor)]
         header += ["Current Integrator Reading = {} microA"\
                    .format(self.currentIntegrator)]
         header += ["Solid Angle = {} sr".format(self.solidAngle)]
+        header += ["Fractional Dead Time = {}".format(self.deadTime)]
         header = "\n".join(header)+"\n"
         return header
 
@@ -215,6 +226,7 @@ class FluxNormalization(object):
 
         # Initialize variables
         self.currentMonitor = 0
+        self.runTime = 0
         if startTime == None:
             startTime = datetime(1984, 8, 2, 12, 12, 0)
         if stopTime == None:
@@ -236,6 +248,7 @@ class FluxNormalization(object):
                 # Reading occurred during the experiment and isn't noise
                 if curTime > startTime and curTime < stopTime and \
                    abs(float(line[2])) > 0.000000001:
+                    self.runTime += (curTime-prevTime).total_seconds()
                     self.currentMonitor += float(line[2])\
                                         *(curTime-prevTime).total_seconds()
                 prevTime = curTime
@@ -260,3 +273,19 @@ class FluxNormalization(object):
         """
 
         self.solidAngle = solid_angle_approx(dist, area)
+
+    def set_dead_time(self, func, **kwargs):
+        """!
+        Sets the fractional dead time for the detector using a specified
+        functional model.
+
+        @param self: <em> fluxNormalization pointer </em> \n
+            The object pointer. \n
+        @param func: \e function \n
+            A beam dead time model \n
+        @param kwargs \n
+            Keyword arguments for the dead time function.
+        """
+        assert hasattr(func, '__call__'), 'Invalid function handle'
+
+        self.deadTime = func(**kwargs)
