@@ -14,8 +14,6 @@
 import numpy as np
 import pandas as pd
 
-from scipy.stats import chi2
-
 #------------------------------------------------------------------------------#
 def readGru(path, **kwargs):
     """!
@@ -39,6 +37,27 @@ def readGru(path, **kwargs):
     dataStop = "*********format(16i5)*********"
     loc = df[df.ix[:, 0] == dataStop].index.tolist()[0]
     df = df.drop(df.index[loc:])
+
+    return df.apply(pd.to_numeric)
+
+#------------------------------------------------------------------------------#
+def readFlu(path, **kwargs):
+    """!
+    @ingroup HEPROW
+    Reads in a HEPROW .fru output file and returns a pandas data frame
+    containing the low bin edges, the absolute flux data, and uncertainty.
+    This does not read the correlation coefficient matrix.
+
+    @param path: \e string \n
+        Absolute path to the file \n
+    @param kwargs: \n
+        Keyword arguments for pandas.read_table() \n
+
+    @return <em> pandas data frame </em>: A data frame containing the lower
+        bin edges, the absolute flux, and its uncertainty \n
+    """
+
+    df = pd.read_table(path, **kwargs)
 
     return df.apply(pd.to_numeric)
 
@@ -82,7 +101,64 @@ def readMTX(path):
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
 
     # Determine the standard deviation
-    data = np.sqrt(np.diag(np.asarray(data).astype(float))) \
-            * np.sqrt(chi2.isf(1 - .68, bins))
+    data = np.sqrt(np.diag(np.asarray(data).astype(float))) 
 
+    return data
+
+#------------------------------------------------------------------------------#
+def readRSP(path, minE, maxE, minPH, maxPH):
+    """!
+    @ingroup HEPROW
+    Reads in a HEPROW .MTX covariance output file and returns a the sqrt of the
+    diagonal times the inverse survival function of the \f$\chi^2\f$
+    distribution.
+
+    @param path: \e string \n
+        Absolute path to the file \n
+
+    @return <em> array of floats </em>: An array containing the standard
+    deviations \n
+    """
+
+    data = []
+    allE = []
+
+    # Open file
+    try:
+        f = open(path, 'r')
+        # Skip the first header
+        line = f.next()
+        phScale = float(line.rstrip().split()[0])
+        line = f.next()
+        curE = float(line.rstrip().split()[0])
+        phLowBound = float(line.rstrip().split()[2])
+        count = 1
+
+        # Read the file line by line and store the values
+        tmp = []
+        for line in f:
+            splitList = line.rstrip().split()
+            if len(splitList) == 4 and float(splitList[2]) == phLowBound:
+                curE = float(line.rstrip().split()[0])
+                if tmp != []:
+                    data.append(tmp)
+                    tmp = []
+                count = 1
+            elif curE >= minE and curE <= maxE:
+                if curE not in allE:
+                    allE.append(curE)
+                for item in splitList:
+                    if count*phScale >= minPH and count*phScale <= maxPH:
+                        tmp.append(float(item))
+                    count += 1
+
+        # Close the file
+        f.close()
+    except IOError as e:
+        print "I/O error({0}): {1}".format(e.errno, e.strerror)
+        
+    for row in data:
+        while len(row) < len(data[-1]):
+            row.append(0.0)
+            
     return data
