@@ -288,4 +288,4 @@ class FluxNormalization(object):
         """
         assert hasattr(func, '__call__'), 'Invalid function handle'
 
-        self.deadTime = func(**kwargs)
+        self.deadTime = func(**kwargs)[1]
