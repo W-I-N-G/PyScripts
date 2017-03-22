@@ -169,7 +169,8 @@ def parse_spe(fname):
     @param fname: \e string \n
         The name and path to the .Spe file \n
 
-    @return \e float: The live counting time \n
+    @return \e float: The real counting time \n
+        \e float: The live counting time \n
         \e float: The measurement date and time \n
         \e float: The quadratic term of the energy calibration \n
         \e float: The linear term of the energy calibration \n
@@ -184,6 +185,8 @@ def parse_spe(fname):
         # Determine energy calibration and live time
         lt = float(data['counts'][np.where(data['counts'] == \
                                     '$MEAS_TIM:')[0][0]+1].split()[0])
+        rt = float(data['counts'][np.where(data['counts'] == \
+                                    '$MEAS_TIM:')[0][0]+1].split()[1])
         date = datetime.strptime(data['counts'][np.where(data['counts'] == \
                                 '$DATE_MEA:')[0][0]+1].split()[0], '%m/%d/%Y')
         time = datetime.strptime(data['counts'][np.where(data['counts'] == \
@@ -203,7 +206,7 @@ def parse_spe(fname):
         # Renumber indices
         data.index = range(len(data['counts']))
 
-        return (lt, datetime.combine(date.date(), time.time()), a, b, c, data)
+        return (rt, lt, datetime.combine(date.date(), time.time()), a, b, c, data)
 
     except IOError:
         print "WARNING: File does not exist."
