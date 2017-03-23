@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.abspath(
  '/home/pyne-user/Dropbox/UCB/Computational_Tools/Scripts/Python/DataAnalysis'))
 from Math import gauss, smeared_step, skew_gauss, quadratic
 from Stats import red_chisq
+
 #------------------------------------------------------------------------------#
 def volume_solid_angle(rSrc, rDet, det2src):
     """!
@@ -206,10 +207,10 @@ def parse_spe(fname):
         # Renumber indices
         data.index = range(len(data['counts']))
 
-        return (rt, lt, datetime.combine(date.date(), time.time()), a, b, c, data)
+        return (rt, lt, datetime.combine(date.date(), time.time()), a, b, c, data.astype(int))
 
     except IOError:
-        print "WARNING: File does not exist."
+        print "WARNING: {} does not exist.".format(fname)
 
 #------------------------------------------------------------------------------#
 def find_best_fit(*args, **kwargs):
