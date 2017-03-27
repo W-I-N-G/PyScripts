@@ -15,6 +15,7 @@ existing libraries.
 """
 
 import numpy as np
+from math import exp
 
 #------------------------------------------------------------------------------#
 def gauss(x, amplitude, centroid, width):
@@ -34,8 +35,29 @@ def gauss(x, amplitude, centroid, width):
 
     @return \e float: evaluated value at point x \n
     """
-    z = (x-centroid)/float(width)
+    z = (x-centroid)/(1.0*width)
     return amplitude*np.exp(-0.5*z**2)
+
+#------------------------------------------------------------------------------#
+def gaussScalar(x, amplitude, centroid, width):
+    """!
+    @ingroup DataAnalysis
+    Evaluates a gaussian at a given point provided the amplitude, centroid,
+    and width.
+
+    @param x: <em> integer or float </em>  \n
+        Point at which to evaluate \n
+    @param amplitude: <em> integer or float </em>  \n
+        Amplitude of the peak \n
+    @param centroid: <em> integer or float </em>  \n
+        Location of the centroid in the same units as x \n
+    @param width: <em> integer or float </em>  \n
+        Width of the distribution in the same units as x \n
+
+    @return \e float: evaluated value at point x \n
+    """
+
+    return amplitude*exp(-0.5*(x-centroid)/(1.0*width)**2)
 
 #------------------------------------------------------------------------------#
 def smeared_step(x, centroid, width, amplitude):
@@ -55,7 +77,7 @@ def smeared_step(x, centroid, width, amplitude):
 
     @return \e float: evaluated value at point x \n
     """
-    z = (x-centroid)/float(width)
+    z = (x-centroid)/(1.0*width)
     return amplitude/(1+np.exp(z))**2
 
 #------------------------------------------------------------------------------#
@@ -78,7 +100,7 @@ def skew_gauss(x, centroid, width, amplitude, rng):
 
     @return \e float: evaluated value at point x \n
     """
-    z = (x-centroid)/float(width)
+    z = (x-centroid)/(1.0*width)
     return amplitude*(np.exp(rng*z))/(1+np.exp(z))**4
 
 #------------------------------------------------------------------------------#
@@ -98,4 +120,21 @@ def quadratic(x, quad, linear, offset):
 
     @return \e float: evaluated value at point x \n
     """
-    return quad*x**2 + linear*x + offset
+    return quad*x**2 + linear*x + offset        
+
+#------------------------------------------------------------------------------#
+def scaled_exponential(x, a, b):
+    """!
+    @ingroup DataAnalysis
+    Quadratic function.
+
+    @param x: <em> integer or float </em>  \n
+        Point at which to evaluate \n
+    @param a: <em> integer or float </em>  \n
+        Function scaler \n
+    @param b: <em> integer or float </em>  \n
+        Function exponential \n
+
+    @return \e float: evaluated value at point x \n
+    """
+    return a*x**(-b)
