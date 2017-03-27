@@ -29,7 +29,7 @@ from scipy.special import gamma
 from scipy.optimize import curve_fit
 from BasicNuclearCalcs import activity, decay, fractional_solid_angle
 
-sys.path.insert(0, os.path.abspath(
+sys.path.insert(0,os.path.abspath(
  '/home/pyne-user/Dropbox/UCB/Computational_Tools/Scripts/Python/DataAnalysis'))
 from Math import gauss, smeared_step, skew_gauss, quadratic
 from Stats import red_chisq
