@@ -616,9 +616,12 @@ def foil_count_time(sigma, halfLife, init, efficiency, background=0.001, \
     # If the activity is too high, then the dead time will be high; warn user.
     # This assumes 5% dead time on a germanium as determined with a Co60 and 
     # Eu152 src; it is not perfect.
-    if units == "atoms" and activity(halfLife, init, 0) > 12000 or \
-       units != "atoms" and decay(halfLife, init, 0, units) > 12000:
-        print "WARNING: The Dead time may be > 5% with this set-up."
+    # This is a functionality that should exist, but the current logic is
+    # terrible and flogs the output when coupled with an optimized count
+    # plan calculation.
+    #if units == "atoms" and activity(halfLife, init, 0) > 12000 or \
+    #   units != "atoms" and decay(halfLife, init, 0, units) > 12000:
+    #    print "WARNING: The Dead time may be > 5% with this set-up."
 
     # Approximate the optimal foil counting time using an average count rate
     tf = 1
