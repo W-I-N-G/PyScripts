@@ -196,9 +196,9 @@ class FluxNormalization(object):
         """
         header = ["\nNormalization Parameters"]
         header += ["Total Run Time = {} s".format(self.runTime)]
-        header += ["Current Monitor Inegrated Current = {} microA"\
+        header += ["Current Monitor Inegrated Current = {} microC"\
                    .format(self.currentMonitor)]
-        header += ["Current Integrator Reading = {} microA"\
+        header += ["Current Integrator Reading = {} microC"\
                    .format(self.currentIntegrator)]
         header += ["Solid Angle = {} sr".format(self.solidAngle)]
         header += ["Fractional Dead Time = {}".format(self.deadTime)]
