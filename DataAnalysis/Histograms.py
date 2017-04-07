@@ -82,7 +82,7 @@ class Histogram(object):
         @param self: <em> histogram pointer </em> \n
             The histogram pointer. \n
         """
-        return "ADVANTG Settings({}, {}, {}, {}, {})".format(self.xEdges,
+        return "Histogram({}, {}, {}, {}, {})".format(self.xEdges,
                                                              self.yValues,
                                                              self.midPtX,
                                                              self.midPtY,
