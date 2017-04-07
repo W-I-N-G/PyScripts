@@ -198,6 +198,8 @@ class Histogram(object):
             An optional specification for the x axis label. \n
         @param yLabel: <em> kwargs string </em> \n
             An optional specification for the y axis label. \n
+        @param savePath: <em> kwargs string </em> \n
+            An optional specification for the save location. \n
         """
 
         # Set defaults if not specified since 2.7 sucks
@@ -211,6 +213,8 @@ class Histogram(object):
             kwargs['xLabel'] = ''
         if 'yLabel' not in kwargs.keys():
             kwargs['yLabel'] = ''
+        if 'savePath' not in kwargs.keys():
+            kwargs['savePath'] = ''
 
         # Allow use of Tex sybols
         plt.rc('text', usetex=True)
@@ -273,3 +277,6 @@ class Histogram(object):
                        framealpha=0.5, numpoints=1)
 
         plt.show()
+        
+        if kwargs['savePath'] != '':
+            fig.savefig(kwargs['savePath'], bbox_inches='tight')
