@@ -12,6 +12,8 @@
 @date 7Mar17
 """
 
+import os
+
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
@@ -280,3 +282,46 @@ class Histogram(object):
         
         if kwargs['savePath'] != '':
             fig.savefig(kwargs['savePath'], bbox_inches='tight')
+            
+    def write(self, path, includeUncert=False, edge=False):
+        """!
+        Writes a histogram object to a txt file.
+
+        @param self: <em> histogram pointer </em> \n
+            The histogram pointer. \n
+        @param path: <em> kwargs string </em> \n
+            Specification for the save location. Must include both path and
+            name. \n
+        @param includeUncert: \e string \n
+            An option to include the uncertainty in the output. \n
+        @param edge: \e string \n
+            An option to output the edges or midpoint values. \n
+        """
+
+        if os.path.exists(path):
+            if os.path.isfile("{}.txt".format(path)):
+                os.remove("{}.txt".format(path))
+
+        # Create and open input file 
+        try:
+            with open("{}.txt".format(path), "w") as inp_file:  
+
+                for i in range(len(self.midPtX)):
+                    if includeUncert == True:
+                        inp_file.write("{} {} {}\n".format(self.midPtX[i],
+                                                           self.midPtY[i],
+                                                           self.sigma[i]))
+                    else:
+                        inp_file.write("{} {}\n".format(self.midPtX[i],
+                                                           self.midPtY[i]))
+
+            # Close the file
+            inp_file.close()
+
+        except IOError as e:
+            module_logger.error("I/O error({0}): {1}".format(e.errno,
+                                                             e.strerror)) 
+            module_logger.error("File not found was: {0}".format(path))
+
+        # Test that the file closed
+        assert inp_file.closed==True, "File did not close properly."        
