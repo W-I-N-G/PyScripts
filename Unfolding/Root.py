@@ -206,7 +206,7 @@ class FluxNormalization(object):
                    .format(self.currentIntegrator)]
         header += ["Solid Angle = {} sr".format(self.solidAngle)]
         header += ["Fractional Dead Time = {}".format(self.deadTime)]
-        header += ["MCNP Normalization Factor = {} src n/microC/sr"\
+        header += ["MCNP Normalization Factor = {:.2e} src n"\
                    .format(self.mcnpNormFactor)]
         header = "\n".join(header)+"\n"
         return header

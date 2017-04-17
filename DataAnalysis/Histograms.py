@@ -217,14 +217,14 @@ class Histogram(object):
             kwargs['yLabel'] = ''
         if 'savePath' not in kwargs.keys():
             kwargs['savePath'] = ''
-        if 'minX' not in kwargs.keys():
-            kwargs['minX'] = 0
-        if 'maxX' not in kwargs.keys():
-            kwargs['maxX'] = max(self.xEdges)+1
-        if 'minY' not in kwargs.keys():
-            kwargs['minY'] = 0.5*min(y for y in self.yValues if y > 0)
-        if 'maxY' not in kwargs.keys():
-            kwargs['maxY'] = 1.5*max(self.yValues)
+        if 'xMin' not in kwargs.keys():
+            kwargs['xMin'] = 0
+        if 'xMax' not in kwargs.keys():
+            kwargs['xMax'] = max(self.xEdges)+1
+        if 'yMin' not in kwargs.keys():
+            kwargs['yMin'] = 0.5*min(y for y in self.yValues if y > 0)
+        if 'yMax' not in kwargs.keys():
+            kwargs['yMax'] = 1.5*max(self.yValues)
 
         # Allow use of Tex sybols
         plt.rc('text', usetex=True)
@@ -241,8 +241,8 @@ class Histogram(object):
         ax1.set_prop_cycle(color=['k', 'k'])
 
         # Set axes
-        ax1.axis([kwargs['minX'], kwargs['maxX'], kwargs['minY'], 
-                  kwargs['maxY']])
+        ax1.axis([kwargs['xMin'], kwargs['xMax'], kwargs['yMin'], 
+                  kwargs['yMax']])
         if kwargs['logX']:
             ax1.set_xscale('log')
         if kwargs['logY']:
