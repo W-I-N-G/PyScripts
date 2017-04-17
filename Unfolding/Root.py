@@ -174,6 +174,10 @@ class FluxNormalization(object):
         # The fractional dead time of the detection system
         self.deadTime = 0
 
+        ## @var mcnpNormFactor: \e float
+        # The per source normalization factor for MCNP output
+        self.mcnpNormFactor = 1
+
     def __repr__(self):
         """!
         Object print function.
@@ -182,10 +186,10 @@ class FluxNormalization(object):
             The object pointer. \n
         """
 
-        return "Normalization Params({} s, {} uA, {} uA, {} st, {})"\
+        return "Normalization Params({} s, {} uA, {} uA, {} st, {}, {})"\
                     .format(self.runTime, self.currentMonitor, 
                             self.currentIntegrator, self.solidAngle,
-                            self.deadTime)
+                            self.deadTime, self.mcnpNormFactor)
 
     def __str__(self):
         """!
@@ -202,6 +206,8 @@ class FluxNormalization(object):
                    .format(self.currentIntegrator)]
         header += ["Solid Angle = {} sr".format(self.solidAngle)]
         header += ["Fractional Dead Time = {}".format(self.deadTime)]
+        header += ["MCNP Normalization Factor = {} src n/microC/sr"\
+                   .format(self.mcnpNormFactor)]
         header = "\n".join(header)+"\n"
         return header
 
