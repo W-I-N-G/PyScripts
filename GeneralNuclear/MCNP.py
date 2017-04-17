@@ -77,7 +77,7 @@ def read_tally(path, tallyNum, readGroups=True, splitTally=False):
                 splitList = line.strip().split()
                 if len(splitList) >= 3:
                     if splitList[0].strip() == "1tally" and \
-                          int(splitList[1].strip()) == tallyNum and \
+                          splitList[1].strip() == tallyNum and \
                           splitList[2].strip() == "nps":
                         tally = True
 
