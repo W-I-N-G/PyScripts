@@ -319,9 +319,8 @@ class Histogram(object):
             inp_file.close()
 
         except IOError as e:
-            module_logger.error("I/O error({0}): {1}".format(e.errno,
-                                                             e.strerror)) 
-            module_logger.error("File not found was: {0}".format(path))
+            print "I/O error({0}): {1}".format(e.errno,e.strerror)
+            print "File not found was: {0}".format(path)
 
         # Test that the file closed
         assert inp_file.closed==True, "File did not close properly."        

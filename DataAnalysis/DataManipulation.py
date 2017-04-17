@@ -106,7 +106,7 @@ def bin_differentiation(edges, data, edgeLoc="low"):
         if len(edges) == len(data):
             try:
                 edges.insert(0, 0)
-            except TypeError:
+            except AttributeError, TypeError:
                 edges = edges.tolist()
                 edges.insert(0, 0)
     if edgeLoc == "mid":
