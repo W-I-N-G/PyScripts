@@ -66,6 +66,12 @@ def read_tally(path, tallyNum, readGroups=True, splitTally=False):
         tallyDict = {}
         df = pd.DataFrame(columns=colNames)
 
+    # Determine number of header lines for tally
+    if float(tallyNum) -round(float(tallyNum), -1) == 1:
+        headerLines = 6
+    if float(tallyNum) - round(float(tallyNum), -1) == 4:
+        headerLines = 10
+
     # Create and open input file
     try:
         with open(path, "r") as f:
@@ -82,7 +88,7 @@ def read_tally(path, tallyNum, readGroups=True, splitTally=False):
                         tally = True
 
                         # Skip header lines
-                        for i in range(0, 10):
+                        for i in range(0, headerLines):
                             line = f.next().strip()
                         if readGroups == True and splitTally == True:
                             subTallyName = line
@@ -102,7 +108,6 @@ def read_tally(path, tallyNum, readGroups=True, splitTally=False):
                                 df = pd.DataFrame(columns=colNames)
                                 for i in range(0, 3):
                                     splitList = f.next().split()
-                                print splitList[0]
                                 if splitList[0][0:4].strip() == '====':
                                     return tallyDict
                                 else:

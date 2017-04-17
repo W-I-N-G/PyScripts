@@ -202,6 +202,14 @@ class Histogram(object):
             An optional specification for the y axis label. \n
         @param savePath: <em> kwargs string </em> \n
             An optional specification for the save location. \n
+        @param xMin: <em> kwargs integer or float </em> \n
+            An optional specification for the minimum X axis value. \n
+        @param xMax: <em> kwargs integer or float </em> \n
+            An optional specification for the maximum X axis value. \n
+        @param yMin: <em> kwargs integer or float </em> \n
+            An optional specification for the minimum Y axis value. \n
+        @param yMax: <em> kwargs integer or float </em> \n
+            An optional specification for the maximum Y axis value. \n
         """
 
         # Set defaults if not specified since 2.7 sucks
@@ -241,7 +249,7 @@ class Histogram(object):
         ax1.set_prop_cycle(color=['k', 'k'])
 
         # Set axes
-        ax1.axis([kwargs['xMin'], kwargs['xMax'], kwargs['yMin'], 
+        ax1.axis([kwargs['xMin'], kwargs['xMax'], kwargs['yMin'],
                   kwargs['yMax']])
         if kwargs['logX']:
             ax1.set_xscale('log')
@@ -286,10 +294,10 @@ class Histogram(object):
                        framealpha=0.5, numpoints=1)
 
         plt.show()
-        
+
         if kwargs['savePath'] != '':
             fig.savefig(kwargs['savePath'], bbox_inches='tight')
-            
+
     def write(self, path, includeUncert=False, edge=False):
         """!
         Writes a histogram object to a txt file.
@@ -309,25 +317,35 @@ class Histogram(object):
             if os.path.isfile("{}.txt".format(path)):
                 os.remove("{}.txt".format(path))
 
-        # Create and open input file 
+        # Create and open input file
         try:
-            with open("{}.txt".format(path), "w") as inp_file:  
-
-                for i in range(len(self.midPtX)):
-                    if includeUncert == True:
-                        inp_file.write("{} {} {}\n".format(self.midPtX[i],
-                                                           self.midPtY[i],
-                                                           self.sigma[i]))
-                    else:
-                        inp_file.write("{} {}\n".format(self.midPtX[i],
+            with open("{}.txt".format(path), "w") as inpFile:
+                if edge == False:
+                    for i in range(len(self.midPtX)):
+                        if includeUncert == True:
+                            inpFile.write("{} {} {}\n".format(self.midPtX[i],
+                                                              self.midPtY[i],
+                                                              self.sigma[i]))
+                        else:
+                            inpFile.write("{} {}\n".format(self.midPtX[i],
                                                            self.midPtY[i]))
+                else:
+                    for i in range(len(self.xEdges)):
+                        if includeUncert == True:
+                            inpFile.write("{} {} {}\n".format(self.xEdges[i],
+                                                             self.yValues[i],
+                                                             self.sigma[i/2]))
+                        else:
+                            inpFile.write("{} {}\n".format(self.xEdges[i],
+                                                           self.yValues[i]))
 
             # Close the file
-            inp_file.close()
+            inpFile.close()
 
         except IOError as e:
-            print "I/O error({0}): {1}".format(e.errno,e.strerror)
+            print "I/O error({0}): {1}".format(e.errno, e.strerror)
             print "File not found was: {0}".format(path)
 
         # Test that the file closed
-        assert inp_file.closed==True, "File did not close properly."        
+        assert inpFile.closed == True, "File did not close properly."
+        
