@@ -803,6 +803,152 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, background=0.001,
     return bestDF.sort_values(by='countOrder'), bestOrder, totalTime
 
 #------------------------------------------------------------------------------#
+def count_plan(df, handleTime=60, detR=5, background=0.01,
+                       units="Bq", toMinute=False,  funcDict={},
+                       funcParamDict={}, func=germanium_eff_exp, **kwargs):
+    """!
+    @ingroup Counting
+    Calculates the count times assumming the order of the entries in the
+    dataframe is the order of counting.  The assumption is made that a single
+    foil as named will be counted together.  This assumption can be broken
+    simply my giving each reaction channel a unique foil name.
+
+    This function assumes that you have a correctly labeled dataframe.  The
+    required columns are:
+
+    ['foil','gammaEnergy','halfLife','initActivity','activityUncert',
+    'det2FoilDist','relStat','foilR']
+
+    There can be additional columns.
+
+    @param df: \e dataframe \n
+        A dataframe containing all of the required data for the count time
+        calculation.  NOTE: the columns must be labeled ['foil', 'gammaEnergy',
+        'halfLife', 'initActivity', 'activityUncert', 'foilR', 'relStat'] \n
+    @param handleTime: <em> integer or float </em> \n
+        The estimated handling time for each foil in sec \n
+    @param detR: <em> integer or float </em> \n
+        The detector radius. Used to correct solid angle for large foils.
+        The default values are sufficient if dealing w/ point source foils. \n
+    @param background: <em> integer or float </em> \n
+        The background count rate at the line of interest \n
+    @param units: \e string \n
+       This determines the units provided and whether initial atoms or
+       activity is provided. Options are "uCi", "Ci", or "Bq"  \n
+    @param toMinute: \e boolean \n
+       If this flag is set to True, then the count times are rounded to the
+       nearest minute. Results returned are still in seconds. \n
+    @param funcDict: <em> disctionary of functions </em> \n
+       If multiple positions are used, this is a dictionary of the fitting 
+       function used vs position where the key is the position name, and the
+       value is the fitting function. funcParamDict must be specified if this 
+       argument is used. Priority is given to the dictionaries if both methods
+       are given as inputs. \n
+    @param funcParamDict: <em> disctionary of functions </em> \n
+       If multiple positions are used, this is a dictionary of the fitting 
+       function parameters vs position where the key is the position name,
+       and the value is the N fitting paramters for the function specified in
+       funcDict. funcDict must be specified if this argument is used.\n
+    @param func: \e function \n
+       The effieciency fitting function to calculate the detector absolute
+       efficiency. This argument is only valid if there is only one counting
+       position being counsidered. Do not specify funcDict and funcParamDict
+       if this argument is used. Do specify the kwargs appropriate for this 
+       function. \n
+    @param kwargs \n
+        Keyword arguments for the fitting function. This argument is only
+        valid if there is only one counting position being counsidered.
+
+    @return \e dataframe: a copy of the original dataframe with a count time
+                         column added (in seconds)  \n
+            \e list: a list of the counting order for the foils considered \n
+            \e float: the total count time in seconds
+    """
+    assert hasattr(func, '__call__'), 'Invalid function handle'
+
+    # Get activity in Bq
+    if units == "uCi":
+        foilParams['initActivity'] = foilParams['initActivity']*1E-6*3.7E10
+        foilParams['activityUncert'] = foilParams['activityUncert']*1E-6*3.7E10
+    elif units == "Ci":
+        foilParams['initActivity'] = foilParams['initActivity']*3.7E10
+        foilParams['activityUncert'] = foilParams['activityUncert']*3.7E10
+
+    # Initialize local variables
+    df['countTime'] = 0.0
+    df['countOrder'] = 0
+    df['countActivity'] = cp.deepcopy(df['initActivity'])
+    df['countActUncert'] = cp.deepcopy(df['activityUncert'])
+    totalCT = 0.0
+    order = list(df.foil)
+    
+    # Determine count time for each foil 
+    for foil in order:
+        ct = 0
+        for rx in df.groupby("foil").get_group(foil).index:
+            pos = df.at[rx, 'det2FoilDist']
+            df.at[rx, 'countOrder'] = max(df['countOrder']) + 1
+
+            if funcDict != {} and funcParamDict != {}:
+                absEff = funcDict[pos](df.at[rx, 'gammaEnergy'],
+                                       *funcParamDict[pos]) \
+                       *(volume_solid_angle(df.at[rx, 'foilR'], detR, pos)) \
+                       / fractional_solid_angle(detR, pos) 
+            elif funcDict != {} and funcParamDict != {}:
+                print ("WARNING: Both funcDict and funcParamDict were not ",
+                       "specified. A single efficieny fit will be used.")
+            elif kwargs:
+                absEff = func(df.at[rx, 'gammaEnergy'], **kwargs) \
+                       *(volume_solid_angle(df.at[rx, 'foilR'], detR, pos)) \
+                       / fractional_solid_angle(detR, pos)
+            else:
+                print ("WARNING: Kwargs were not specified for the fitting ",
+                       "function. Function defaults will be used, but may ",
+                       "not be appropriate.")
+                absEff = func(df.at[rx, 'gammaEnergy']) \
+                       *(volume_solid_angle(df.at[rx, 'foilR'], detR, pos)) \
+                       / fractional_solid_angle(detR, pos)
+            try:
+                df.at[rx, 'countTime'] = foil_count_time( \
+                                                df.at[rx, 'relStat'], \
+                                                df.at[rx, 'halfLife'], \
+                                                df.at[rx, 'countActivity']- \
+                                                3*df.at[rx, 'countActUncert'], \
+                                                absEff, background=background, \
+                                                 units='Bq')[0]
+                if toMinute:
+                    df.at[rx, 'countTime'] = ceil(df.at[rx, 'countTime']/60.)
+                    
+            except AssertionError:
+                df.at[rx, 'countTime'] = 1E99
+                break
+
+            if df.at[rx, 'countTime'] > ct:
+                ct = df.at[rx, 'countTime']
+            df.at[rx, 'countTime'] = max(df['countTime']) + 1
+
+        # Update total counting time
+        totalCT += ct
+
+        # Update counting times to longest for a given set of reactions
+        # within a foil
+        for rx in df.groupby("foil").get_group(foil).index:
+            df.at[rx, 'countTime'] = ct
+
+        # Decay remaining foils by the count time of the current foil
+        for rx in df.index:
+            if df.at[rx, 'countTime'] == 0.0:
+                df.at[rx, 'countActivity'] = decay(df.at[rx, 'halfLife'], \
+                                             df.at[rx, 'countActivity'], \
+                                             ct+handleTime, units='Bq')
+                df.at[rx, 'countActUncert'] = decay(df.at[rx, 'halfLife'], \
+                                              df.at[rx, 'countActUncert'], \
+                                              ct+handleTime, units='Bq')
+    
+    
+    return df, totalCT
+
+#------------------------------------------------------------------------------#
 def channel_statistics(df, countTime, detR=5, units='Bq', 
                        countUnits='s', func=None, **kwargs):
     """!
