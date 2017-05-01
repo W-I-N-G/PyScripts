@@ -129,7 +129,7 @@ def readRSP(path, minE=None, maxE=None, minPH=None, maxPH=None):
 
     # Initialize Variables
     data = []
-    allE = []
+    eBins = []
     if minE == None:
         minE = 0
     if maxE == None:
@@ -143,6 +143,7 @@ def readRSP(path, minE=None, maxE=None, minPH=None, maxPH=None):
         phScale = float(line.rstrip().split()[0])
         line = f.next()
         curE = float(line.rstrip().split()[0])
+        numPHBins = float(line.rstrip().split()[1])
         phLowBound = float(line.rstrip().split()[2])
         if minPH == None:
             minPH = phLowBound
@@ -157,14 +158,13 @@ def readRSP(path, minE=None, maxE=None, minPH=None, maxPH=None):
             splitList = line.rstrip().split()
             if len(splitList) == 4 and float(splitList[3]) == phUpBound:
                 curE = float(line.rstrip().split()[0])
-                print curE
                 if tmp != []:
                     data.append(tmp)
                     tmp = []
                 count = 1
             elif curE >= minE and curE <= maxE:
-                if curE not in allE:
-                    allE.append(curE)
+                if curE not in eBins:
+                    eBins.append(curE)
                 for item in splitList:
                     if count*phScale >= minPH and count*phScale <= maxPH:
                         tmp.append(float(item))
@@ -182,4 +182,5 @@ def readRSP(path, minE=None, maxE=None, minPH=None, maxPH=None):
         while len(row) < len(data[-1]):
             row.append(0.0)
 
-    return np.transpose(np.asarray(data))
+    return np.transpose(np.asarray(data)), eBins, \
+           np.linspace(phScale, phUpBound, numPHBins)
