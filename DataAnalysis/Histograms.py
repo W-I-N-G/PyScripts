@@ -130,7 +130,7 @@ class Histogram(object):
         @param uncert: <em> list or array of floats </em> \n
             The uncertainty corresponding to the data. \n
         @param edgeLoc: \e string \n
-            Indicator for the location of the energy boundary edges.  Options
+            Indicator for the location of the x boundary edges.  Options
             are "low", "mid", or "up" \n
         """
 
@@ -452,8 +452,8 @@ class Histogram2D(Histogram):
         header = header + tmp
         return header
 
-    def build_2Dhisto(self, xEdges, yEdges, data, uncert=None, edgeLoc="low",
-                    name=''):
+    def build_2dHisto(self, xEdges, yEdges, data, uncert=None, xEdgeLoc='low',
+                      yEdgeLoc='low', name=''):
         """!
         Builds a histogram object from input tabulated data.
 
@@ -467,12 +467,19 @@ class Histogram2D(Histogram):
             The data corresponding to the bin structure. \n
         @param uncert: <em> list or array of floats </em> \n
             The uncertainty corresponding to the data. \n
-        @param edgeLoc: \e string \n
-            Indicator for the location of the energy boundary edges.  Options
+        @param xEdgeLoc: \e string \n
+            Indicator for the location of the x boundary edges.  Options
             are "low", "mid", or "up" \n
+        @param yEdgeLoc: \e string \n
+            Indicator for the location of the y boundary edges.  Options
+            are "low", "mid", or "up" \n
+        @param name: \e string \n
+            An identifier for the histogram. \n
         """
 
-        assert edgeLoc == "low" or edgeLoc == "mid" or edgeLoc == "up", \
+        assert xEdgeLoc == "low" or xEdgeLoc == "mid" or xEdgeLoc == "up", \
+         "Valid specifications for the edge location are 'low', 'mid', or 'up'."
+        assert yEdgeLoc == "low" or yEdgeLoc == "mid" or yEdgeLoc == "up", \
          "Valid specifications for the edge location are 'low', 'mid', or 'up'."
 
         # Initialize variables
@@ -482,33 +489,37 @@ class Histogram2D(Histogram):
         self.midPtY = []
 
         # Check for expected data consistency
-        if edgeLoc == "low":
+        if xEdgeLoc == "low":
             if len(xEdges) == len(data):
                 try:
                     xEdges.append(xEdges[-1]+(xEdges[-1]-xEdges[-2]))
                 except TypeError:
                     xEdges = xEdges.tolist()
                     xEdges.append(xEdges[-1]+(xEdges[-1]-xEdges[-2]))
+        if yEdgeLoc == "low":
             if len(yEdges) == len(data[0]):
                 try:
                     yEdges.append(yEdges[-1]+(yEdges[-1]-yEdges[-2]))
                 except TypeError:
                     yEdges = yEdges.tolist()
                     yEdges.append(xEdges[-1]+(yEdges[-1]-yEdges[-2]))
-        if edgeLoc == "up":
+
+        if xEdgeLoc == "up":
             if len(xEdges) == len(data):
                 try:
                     xEdges.insert(0, 0)
                 except TypeError:
                     xEdges = xEdges.tolist()
                     xEdges.insert(0, 0)
+        if xEdgeLoc == "up":
             if len(yEdges) == len(data):
                 try:
                     yEdges.insert(0, 0)
                 except TypeError:
                     yEdges = yEdges.tolist()
                     yEdges.insert(0, 0)
-        if edgeLoc == "mid":
+
+        if xEdgeLoc == "mid":
             tmp = []
             width = xEdges[1]-xEdges[0]
             tmp.append(xEdges[0]-0.5*width)
@@ -518,6 +529,7 @@ class Histogram2D(Histogram):
             tmp.append(xEdges[-1]+0.5*width)
             xEdges = tmp
 
+        if yEdgeLoc == "mid":
             tmp = []
             width = yEdges[1]-yEdges[0]
             tmp.append(yEdges[0]-0.5*width)
@@ -553,6 +565,8 @@ class Histogram2D(Histogram):
             Flag to use a log scale on the x axis \n
         @param logY: <em> kwargs boolean </em> \n
             Flag to use a log scale on the y axis \n
+        @param logZ: <em> kwargs boolean </em> \n
+            Flag to use a log scale on the z axis \n
         @param title: <em> kwargs string </em> \n
             An optional specification for the plot title. \n
         @param xLabel: <em> kwargs string </em> \n
@@ -583,6 +597,8 @@ class Histogram2D(Histogram):
             kwargs['logX'] = False
         if 'logY' not in kwargs.keys():
             kwargs['logY'] = False
+        if 'logZ' not in kwargs.keys():
+            kwargs['logZ'] = False
         if 'title' not in kwargs.keys():
             kwargs['title'] = ''
         if 'xLabel' not in kwargs.keys():
@@ -600,9 +616,9 @@ class Histogram2D(Histogram):
         if 'yMax' not in kwargs.keys():
             kwargs['yMax'] = max(self.yEdges)
         if 'zMin' not in kwargs.keys():
-            kwargs['zMin'] = min(self.data)
+            wargs['zMin'] = 1E-6
         if 'zMax' not in kwargs.keys():
-            kwargs['zMax'] = max(self.data)
+            kwargs['zMax'] = np.max(self.data)
         if 'zIntervals' not in kwargs.keys():
             kwargs['zIntervals'] = 8
 
@@ -624,11 +640,17 @@ class Histogram2D(Histogram):
             ax1.set_xscale('log')
         if kwargs['logY']:
             ax1.set_yscale('log')
+        if kwargs['logZ']:
+            t = np.logspace(np.floor(np.log10(np.abs(kwargs['zMin']))),
+                            np.floor(np.log10(np.abs(kwargs['zMax']))),
+                            kwargs['zIntervals'])
+        else:
+            t = np.linspace(kwargs['zMin'], kwargs['zMax'],
+                            kwargs['zIntervals'])
 
         im = ax1.imshow(self.data, interpolation='none', origin='lower',
                       extent=scale, norm=LogNorm(vmin=kwargs['zMin'],
                                                  vmax=kwargs['zMax']))
-        t = np.logspace(kwargs['zMin'], kwargs['zMax'], kwargs['zIntervals'])
         fig.colorbar(im, cax=axcolor, ticks=t, format='$%.2e$')
         plt.show()
 
