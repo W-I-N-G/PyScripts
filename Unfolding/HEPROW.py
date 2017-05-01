@@ -8,7 +8,7 @@
 
 @author James Bevins
 
-@date 7Mar17
+@date 1May17
 """
 
 import numpy as np
@@ -101,27 +101,39 @@ def readMTX(path):
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
 
     # Determine the standard deviation
-    data = np.sqrt(np.diag(np.asarray(data).astype(float))) 
+    data = np.sqrt(np.diag(np.asarray(data).astype(float)))
 
     return data
 
 #------------------------------------------------------------------------------#
-def readRSP(path, minE, maxE, minPH, maxPH):
+def readRSP(path, minE=None, maxE=None, minPH=None, maxPH=None):
     """!
     @ingroup HEPROW
-    Reads in a HEPROW .MTX covariance output file and returns a the sqrt of the
-    diagonal times the inverse survival function of the \f$\chi^2\f$
-    distribution.
+    Reads in a HEPROW .rsp response matrix file and returns an array
+    representing the response matrix.
 
     @param path: \e string \n
         Absolute path to the file \n
+    @param minE: <em> integer or float </em> \n
+        Optional specifier for the minimum energy to read. \n
+    @param maxE: <em> integer or float </em> \n
+        Optional specifier for the maximum energy to read. \n
+    @param minPH: <em> integer or float </em> \n
+        Optional specifier for the minimum pulse height to read. \n
+    @param maxPH: <em> integer or float </em> \n
+        Optional specifier for the maximum pulse height to read. \n
 
     @return <em> array of floats </em>: An array containing the standard
     deviations \n
     """
 
+    # Initialize Variables
     data = []
     allE = []
+    if minE == None:
+        minE = 0
+    if maxE == None:
+        maxE = 1000
 
     # Open file
     try:
@@ -132,14 +144,20 @@ def readRSP(path, minE, maxE, minPH, maxPH):
         line = f.next()
         curE = float(line.rstrip().split()[0])
         phLowBound = float(line.rstrip().split()[2])
+        if minPH == None:
+            minPH = phLowBound
+        phUpBound = float(line.rstrip().split()[3])
+        if maxPH == None:
+            maxPH = phUpBound
         count = 1
 
         # Read the file line by line and store the values
         tmp = []
         for line in f:
             splitList = line.rstrip().split()
-            if len(splitList) == 4 and float(splitList[2]) == phLowBound:
+            if len(splitList) == 4 and float(splitList[3]) == phUpBound:
                 curE = float(line.rstrip().split()[0])
+                print curE
                 if tmp != []:
                     data.append(tmp)
                     tmp = []
@@ -152,13 +170,16 @@ def readRSP(path, minE, maxE, minPH, maxPH):
                         tmp.append(float(item))
                     count += 1
 
+        # Append last data set
+        data.append(tmp)
+
         # Close the file
         f.close()
     except IOError as e:
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
-        
+
     for row in data:
         while len(row) < len(data[-1]):
             row.append(0.0)
-            
-    return data
+
+    return np.transpose(np.asarray(data))
