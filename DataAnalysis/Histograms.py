@@ -282,11 +282,11 @@ class Histogram(object):
         # Plot additional histograms, if specified
         num = 1
         for arg in args:
-            ax1.plot(arg.xEdges, arg.yValues, linewidth=linewidth[0],
+            ax1.plot(arg.xEdges, arg.data, linewidth=linewidth[0],
                      linestyle=linestyle[num%4], dashes=dashes[num%4],
                      marker=None, label=arg.label)
             if arg.sigma != []:
-                ax1.errorbar(arg.midPtX, arg.midPtY, yerr=arg.sigma,
+                ax1.errorbar(arg.midPtX, arg.midPtData, yerr=arg.sigma,
                              marker=None, linestyle='None', capsize=4,
                              capthick=1.5)
             num += 1
