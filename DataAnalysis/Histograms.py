@@ -9,7 +9,7 @@
 
 @author James Bevins
 
-@date 1May17
+@date 14Jun17
 """
 
 import os
@@ -191,9 +191,10 @@ class Histogram(object):
         @param args: \e histograms \n
             An optional list of additional histograms to plot. \n
         @param kwargs: <em> optional plotting inputs </em> \n
-            An optional list of additional plot options.  This is wrapped in
-            kwargs because 2.7 doesn't support args and keyword specified
-            arguements.  The options are listed as kwargs parameters below \n
+            An optional list of additional plot MatPlotLib plotoptions.  
+            This is wrapped in kwargs because 2.7 doesn't support args
+            and keyword specified arguments. The options supported are
+            listed as kwargs parameters below. \n
         @param logX: <em> kwargs boolean </em> \n
             Flag to use a log scale on the x axis \n
         @param logY: <em> kwargs boolean </em> \n
@@ -214,62 +215,70 @@ class Histogram(object):
             An optional specification for the minimum Y axis value. \n
         @param yMax: <em> kwargs integer or float </em> \n
             An optional specification for the maximum Y axis value. \n
+        @param figSize: <em> kwargs tuple </em> \n
+            The (x,y) scale of the plot. \n
+        @param grid: <em> kwargs boolean </em> \n
+            Specifies whether to plot the tick grid. \n
+        @param legendLoc: <em> kwargs int </em> \n
+            Specifies the legend location. \n
+        @param legend: <em> kwargs int </em> \n
+            Specifies wehter to include the legend. \n
         """
 
         # Set defaults if not specified since 2.7 sucks
-        if 'logX' not in kwargs.keys():
-            kwargs['logX'] = False
-        if 'logY' not in kwargs.keys():
-            kwargs['logY'] = False
-        if 'title' not in kwargs.keys():
-            kwargs['title'] = ''
-        if 'xLabel' not in kwargs.keys():
-            kwargs['xLabel'] = ''
-        if 'yLabel' not in kwargs.keys():
-            kwargs['yLabel'] = ''
-        if 'savePath' not in kwargs.keys():
-            kwargs['savePath'] = ''
-        if 'xMin' not in kwargs.keys():
-            kwargs['xMin'] = 0
-        if 'xMax' not in kwargs.keys():
-            kwargs['xMax'] = max(self.xEdges)+1
-        if 'yMin' not in kwargs.keys():
-            kwargs['yMin'] = 0.5*min(y for y in self.data if y > 0)
-        if 'yMax' not in kwargs.keys():
-            kwargs['yMax'] = 1.5*max(self.data)
+        logX = kwargs.pop('logX', False)
+        logY = kwargs.pop('logY', False)
+        title = kwargs.pop('title', '')
+        xLabel = kwargs.pop('xLabel', '')
+        yLabel = kwargs.pop('yLabel', '')
+        savePath = kwargs.pop('savePath', '')
+        xMin = kwargs.pop('xMin', 0)
+        xMax = kwargs.pop('xMax', max(self.xEdges)+1)
+        yMin = kwargs.pop('yMin', 0.5*min(y for y in self.data if y > 0))
+        yMax = kwargs.pop('yMax', 1.5*max(self.data))
+        figSize = kwargs.pop('figSize', (12, 8))
+        grid = kwargs.pop('grid', True)
+        legendLoc = kwargs.pop('legendLoc', 1)
+        legend = kwargs.pop('legend', True)
 
         # Allow use of Tex sybols
         plt.rc('text', usetex=True)
 
         # Set up figure
-        #fig = plt.figure()
-        fig = plt.figure(figsize=(11, 8))
+        fig = plt.figure(figsize=figSize)
         ax1 = fig.add_axes([0.1, 0.1, 0.8, 0.85])
 
         # Preset data set format scheme
-        linewidth = [2.5]
-        linestyle = ['-', '-', ':', '-.']
-        dashes = [[10, 0.1], [5, 2, 5, 2], [0.5, 0.5], [10, 2.5, 1, 2.5]]
-        ax1.set_prop_cycle(color=['k', 'k'])
+        linewidth = [2, 4]
+        linestyle = ['-', ':', '-.', '--', '-', '-']
+        dashes = [[10, 0.1], [2, 2, 2, 2], [10, 5, 2, 5], 
+                  [10, 5, 10, 5], [10, 2, 2, 2, 2, 2],
+                  [10, 2, 10, 2, 2, 2, 2, 2]]
+        ax1.set_prop_cycle(color=['k', 'k', 'k', 'k', 'k', 'k'])
 
         # Set axes
-        ax1.axis([kwargs['xMin'], kwargs['xMax'], kwargs['yMin'],
-                  kwargs['yMax']])
-        if kwargs['logX']:
+        ax1.axis([xMin, xMax, yMin, yMax])
+        if logX:
             ax1.set_xscale('log')
-        if kwargs['logY']:
+        if logY:
             ax1.set_yscale('log')
 
         # Set axes labels and plot title.
-        ax1.set_title('{}'.format(kwargs['title']), fontsize=30, weight="bold")
-        ax1.set_xlabel('{}'.format(kwargs['xLabel']), fontsize=22,
-                       weight='bold')
-        ax1.set_ylabel('{}'.format(kwargs['yLabel']), fontsize=22,
-                       weight="bold")
-        ax1.tick_params(axis='both', which='major', labelsize=18, width=3)
-        ax1.tick_params(axis='both', which='minor', width=3)
-        minorLocator = MultipleLocator(1)
-        ax1.xaxis.set_minor_locator(minorLocator)
+        ax1.set_title('{}'.format(title), fontsize=30, weight="bold")
+        ax1.set_xlabel('{}'.format(xLabel), fontsize=20, weight='bold',
+                       labelpad=10)
+        ax1.set_ylabel('{}'.format(yLabel), fontsize=20, weight="bold",
+                       labelpad=10)
+        
+        # Set minor and major gridlines 
+        #minorLocator = MultipleLocator(1)
+        #ax1.xaxis.set_minor_locator(minorLocator)
+        ax1.xaxis.set_tick_params(which='major', width=2, labelsize=20, length=5)
+        ax1.yaxis.set_tick_params(which='major', width=2, labelsize=20, length=5)
+        ax1.xaxis.set_tick_params(which='minor', width=1.5, length=4)
+        ax1.yaxis.set_tick_params(which='minor', width=1.5, length=4)
+        ax1.xaxis.grid(b=True, which='major', color='0.2', linestyle='-', alpha=0.5)
+        ax1.yaxis.grid(b=True, which='both', color='0.2', linestyle='-', alpha=0.5)
 
         # Add self to plot
         ax1.plot(self.xEdges, self.data, linewidth=linewidth[0],
@@ -282,8 +291,8 @@ class Histogram(object):
         # Plot additional histograms, if specified
         num = 1
         for arg in args:
-            ax1.plot(arg.xEdges, arg.data, linewidth=linewidth[0],
-                     linestyle=linestyle[num%4], dashes=dashes[num%4],
+            ax1.plot(arg.xEdges, arg.data, linewidth=linewidth[num//6],
+                     linestyle=linestyle[num%6], dashes=dashes[num%6],
                      marker=None, label=arg.label)
             if arg.sigma != []:
                 ax1.errorbar(arg.midPtX, arg.midPtData, yerr=arg.sigma,
@@ -292,15 +301,15 @@ class Histogram(object):
             num += 1
 
         # Add and locate legend
-        if self.label != '':
-            plt.legend(borderaxespad=0.75, loc=1, fontsize=16, handlelength=5,
-                       borderpad=0.5, labelspacing=0.75, fancybox=True,
-                       framealpha=0.5, numpoints=1)
+        if self.label != '' and legend == True:
+            plt.legend(borderaxespad=0.75, loc=legendLoc, fontsize=18,
+                       handlelength=5, borderpad=0.5, labelspacing=0.75,
+                       fancybox=True, framealpha=0.75, numpoints=1)
 
         plt.show()
 
-        if kwargs['savePath'] != '':
-            fig.savefig(kwargs['savePath'], bbox_inches='tight')
+        if savePath != '':
+            fig.savefig(savePath, bbox_inches='tight')
 
     def write(self, path, includeUncert=False, edge=False):
         """!
