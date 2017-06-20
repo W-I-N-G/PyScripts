@@ -29,7 +29,7 @@ from matplotlib.ticker import MultipleLocator
 
 from Counting import parse_spe, get_peak_windows, ge_peakfit
 sys.path.insert(0,os.path.abspath(
- '/home/pyne-user/Dropbox/UCB/Computational_Tools/Scripts/Python/DataAnalysis'))
+ '/home/pyne-user/Dropbox/UCB/Computational_Tools/Scripts/Python/src/DataAnalysis'))
 from Math import scaled_exponential
 
 #------------------------------------------------------------------------------#
