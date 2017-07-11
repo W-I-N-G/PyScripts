@@ -8,7 +8,7 @@
 
 @author James Bevins
 
-@date 7Jun17
+@date 11Jul17
 """
 
 import matplotlib.pyplot as plt
@@ -67,9 +67,9 @@ def line_plot(*args, **kwargs):
     if 'title' not in kwargs.keys():
         kwargs['title'] = ''
     if 'dataLabel' not in kwargs.keys():
-        kwargs['dataLabel']=[]
-        for i in args:
-            kwargs['dataLabel'].append('Data Set #{}'.format(i))
+        kwargs['dataLabel'] = []
+        for i in range(0, len(args)):
+            kwargs['dataLabel'].append('Data Set \#{}'.format(i))
     if 'legend' not in kwargs.keys():
         kwargs['legend'] = True
     if 'xLabel' not in kwargs.keys():
@@ -79,13 +79,13 @@ def line_plot(*args, **kwargs):
     if 'savePath' not in kwargs.keys():
         kwargs['savePath'] = ''
     if 'xMin' not in kwargs.keys():
-        kwargs['xMin'] = 0
+        kwargs['xMin'] = min(min(a[0] for a in args))*0.75
     if 'xMax' not in kwargs.keys():
-        kwargs['xMax'] = max(self.xEdges)+1
+        kwargs['xMax'] = max(max(a[0] for a in args))*1.25
     if 'yMin' not in kwargs.keys():
-        kwargs['yMin'] = 0.5*min(y for y in self.data if y > 0)
+        kwargs['yMin'] = min(min(a[1] for a in args))*0.5
     if 'yMax' not in kwargs.keys():
-        kwargs['yMax'] = 1.5*max(self.data)
+        kwargs['yMax'] = max(max(a[1] for a in args))*1.5
     if 'xMinorTicks' not in kwargs.keys():
         kwargs['xMinorTicks'] = 0
     if 'yMinorTicks' not in kwargs.keys():
@@ -102,7 +102,7 @@ def line_plot(*args, **kwargs):
     linewidth = [2.5]
     linestyle = ['-', '-', ':', '-.']
     dashes = [[10, 0.1], [5, 2, 5, 2], [0.5, 0.5], [10, 2.5, 1, 2.5]]
-    color=['k', 'k', 'k', 'k']
+    color = ['k', 'k', 'k', 'k']
 
     # Set axes
     ax1.axis([kwargs['xMin'], kwargs['xMax'], kwargs['yMin'],
@@ -139,10 +139,10 @@ def line_plot(*args, **kwargs):
         ax1.plot(arg[0], arg[1], linewidth=linewidth[0], color=color[n],
                  linestyle=linestyle[n], dashes=dashes[n], marker=None,
                  label=kwargs['dataLabel'][n])
-        if len(args) == 3:
+        if len(arg) == 3:
             ax1.errorbar(arg[0], arg[1], yerr=arg[2], marker=None,
                          linestyle='None', capsize=4, capthick=1.5)
-        n+=1
+        n += 1
 
     # Add and locate legend
     if kwargs['legend'] == True:
@@ -208,9 +208,9 @@ def scatter_plot(*args, **kwargs):
     if 'title' not in kwargs.keys():
         kwargs['title'] = ''
     if 'dataLabel' not in kwargs.keys():
-        kwargs['dataLabel']=[]
-        for i in args:
-            kwargs['dataLabel'].append('Data Set #{}'.format(i))
+        kwargs['dataLabel'] = []
+        for i in range(0, len(args)):
+            kwargs['dataLabel'].append('Data Set \#{}'.format(i))
     if 'legend' not in kwargs.keys():
         kwargs['legend'] = True
     if 'xLabel' not in kwargs.keys():
@@ -220,13 +220,13 @@ def scatter_plot(*args, **kwargs):
     if 'savePath' not in kwargs.keys():
         kwargs['savePath'] = ''
     if 'xMin' not in kwargs.keys():
-        kwargs['xMin'] = 0
+        kwargs['xMin'] = min(min(a[0] for a in args))*0.75
     if 'xMax' not in kwargs.keys():
-        kwargs['xMax'] = max(self.xEdges)+1
+        kwargs['xMax'] = max(max(a[0] for a in args))*1.25
     if 'yMin' not in kwargs.keys():
-        kwargs['yMin'] = 0.5*min(y for y in self.data if y > 0)
+        kwargs['yMin'] = min(min(a[1] for a in args))*0.5
     if 'yMax' not in kwargs.keys():
-        kwargs['yMax'] = 1.5*max(self.data)
+        kwargs['yMax'] = max(max(a[1] for a in args))*1.5
     if 'xMinorTicks' not in kwargs.keys():
         kwargs['xMinorTicks'] = 0
     if 'yMinorTicks' not in kwargs.keys():
@@ -240,7 +240,7 @@ def scatter_plot(*args, **kwargs):
     ax1 = fig.add_axes([0.1, 0.1, 0.8, 0.85])
 
     # Preset data set format scheme
-    marker = ['ko-', 'k^-', 'k+-', 'ks-', 'kd-', 'k*-', 'k>-']
+    marker = ['o', '^', '+', 's', 'd', '*', '>']
 
     # Set axes
     ax1.axis([kwargs['xMin'], kwargs['xMax'], kwargs['yMin'],
@@ -270,13 +270,14 @@ def scatter_plot(*args, **kwargs):
     # Add datasets to plot
     n = 0
     for arg in args:
-        if len(args) == 3:
+        if len(arg) == 3:
             ax1.errorbar(arg[0], arg[1], yerr=arg[2], marker=marker[n],
-                         linestyle='None', capsize=4, capthick=1.5)
+                         linestyle='None', capsize=4, capthick=1.5,
+                         label=kwargs['dataLabel'][n], color='k')
         else:
             ax1.plot(arg[0], arg[1], marker[n], linestyle='None',
-                     label=kwargs['dataLabel'][n])
-        n+=1
+                     label=kwargs['dataLabel'][n], color='k')
+        n += 1
 
     # Add and locate legend
     if kwargs['legend'] == True:

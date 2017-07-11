@@ -8,11 +8,12 @@
 
 @author James Bevins
 
-@date 16April17
+@date 11July17
 """
 
-import pandas as pd
+import os
 
+import pandas as pd
 #------------------------------------------------------------------------------#
 def read_tally(path, tallyNum, readGroups=True, splitTally=False):
     """!
@@ -21,9 +22,9 @@ def read_tally(path, tallyNum, readGroups=True, splitTally=False):
     results in the form of a data frame (if group-wise) and/or total value.
 
     @param path: \e string \n
-        The path, including filename, to the MCNP output file to be read \n
+        The path, including filename, to the MCNP output file to be read. \n
     @param tallyNum: <em> string, integer, or float </em> \n
-        The number of the tally to be read \n
+        The number of the tally to be read. \n
     @param readGroups: \e boolean \n
         Optional specifier to return group-wise tally information. If false,
         only the total is returned. If true, but no group-wise information is
@@ -67,10 +68,12 @@ def read_tally(path, tallyNum, readGroups=True, splitTally=False):
         df = pd.DataFrame(columns=colNames)
 
     # Determine number of header lines for tally
-    if float(tallyNum) -round(float(tallyNum), -1) == 1:
+    if tallyNum[-1] == 1:
         headerLines = 6
-    if float(tallyNum) - round(float(tallyNum), -1) == 4:
+    if tallyNum[-1] == 4:
         headerLines = 10
+    if tallyNum[-1] == '8':
+        headerLines = 6
 
     # Create and open input file
     try:
@@ -134,10 +137,65 @@ def read_tally(path, tallyNum, readGroups=True, splitTally=False):
 
         # Close the file
         f.close()
+        assert f.closed == True, "File ({}) didn't close properly.".format(path)
 
     except IOError as e:
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
         print "File not found was: {0}".format(path)
 
+#------------------------------------------------------------------------------#
+def batchmaker(path, inputSuffix="i", version="mcnp6", tasks=1,
+               scriptType='bat'):
+    """!
+    @ingroup MCNP
+    Creates a batch file for all of the mcnp files in the run directory.
+
+    @param path: \e string \n
+        The path to the directory where the input files to be included in the
+        batch submission script are. \n
+    @param inputSuffix: \e string \n
+        The suffix for the mcnp input files. \n
+    @param version: \e string \n
+        The MCNP version to run. \n
+    @param tasks: \e integer \n
+        The number of tasks to specify for each run. \n
+    @param ouputType: \e string \n
+        The type of script file to write. \n
+    """
+
+    if os.path.isfile('{}runMCNP.{}'.format(path, scriptType)):
+        os.remove('{}runMCNP.{}'.format(path, scriptType))
+
+    # Create and open input file
+    try:
+        with open('{}runMCNP.{}'.format(path, scriptType), "w") as inpFile:
+
+            # Loop over all of the directory files to identify the run files
+            if os.path.exists(path):
+                for filename in os.listdir(path):
+                    splitFile = filename.split('.')
+                    if splitFile[-1] == inputSuffix:
+                        inpFile.write('del {}.o \n'.\
+                                      format('.'.join(splitFile[0:-1])))
+                        inpFile.write('{} i={} o={}.o tasks {}\n'.\
+                                      format(version, filename,
+                                             '.'.join(splitFile[0:-1]),
+                                             tasks))
+                    else:
+                        print 'Skipping file: {}'.format(filename)
+            else:
+                print 'ERROR: Invalid path specified.'
+
+            # Cleanup the directory
+            inpFile.write('del *.$$$ \n')
+            inpFile.write('del runt* \n')
+
+        # Close the file
+        inpFile.close()
+
+    except IOError as e:
+        print 'I/O error({0}): {1}'.format(e.errno, e.strerror)
+        print 'File not found was: {}runMCNP.{}'.format(path, scriptType)
+
     # Test that the file closed
-    assert f.closed == True, "File ({}) did not close properly.".format(path)
+    assert inpFile.closed == True, 'File did not close properly.'

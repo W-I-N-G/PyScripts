@@ -132,6 +132,8 @@ class Histogram(object):
         @param edgeLoc: \e string \n
             Indicator for the location of the x boundary edges.  Options
             are "low", "mid", or "up" \n
+        @param name: \e string \n
+            The name or label associated with the histogram data. \n
         """
 
         assert edgeLoc == "low" or edgeLoc == "mid" or edgeLoc == "up", \
