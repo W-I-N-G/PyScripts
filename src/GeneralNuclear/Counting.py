@@ -10,11 +10,9 @@ This can involve foil activation analysis, detection of unknown sources, etc.
 
 @author James Bevins
 
-@date 25Feb17
+@date 14July17
 """
 
-import os
-import sys
 import peakutils
 
 import numpy as np
@@ -25,14 +23,13 @@ from math import sqrt, ceil
 from datetime import datetime
 from itertools import permutations
 from scipy.integrate import quad
-from scipy.special import gamma
 from scipy.optimize import curve_fit
-from BasicNuclearCalcs import activity, decay, fractional_solid_angle
 
-sys.path.insert(0,os.path.abspath(
- '/home/pyne-user/Dropbox/UCB/Computational_Tools/Scripts/Python/src/DataAnalysis'))
-from Math import gauss, smeared_step, skew_gauss, quadratic
-from Stats import red_chisq
+from BasicNuclearCalcs import activity, decay, fractional_solid_angle
+from Support.Plotting import comp_plot
+from DataAnalysis.Math import gauss, smeared_step, left_skew_gauss
+from DataAnalysis.Math import right_skew_gauss, quadratic, linear
+from DataAnalysis.Stats import red_chisq
 
 #------------------------------------------------------------------------------#
 def volume_solid_angle(rSrc, rDet, det2src):
@@ -207,7 +204,8 @@ def parse_spe(fname):
         # Renumber indices
         data.index = range(len(data['counts']))
 
-        return (rt, lt, datetime.combine(date.date(), time.time()), a, b, c, data.astype(int))
+        return (rt, lt, datetime.combine(date.date(), time.time()), a, b, c,
+                data.astype(int))
 
     except IOError:
         print "WARNING: {} does not exist.".format(fname)
@@ -252,7 +250,7 @@ def find_best_fit(*args, **kwargs):
                        "scipy.optimize.curve_fit function.")
             except RuntimeError:
                 pass
-            
+
             # Save results if a new best fit found
             if redChiSq < bestChiSq:
                 bestFunc = func
@@ -350,39 +348,76 @@ def ge_bincounts(x, p1, p2, p3, p4, p5, p6, p7, p8, p9):
     return f1+f2+f3+f5
 
 #------------------------------------------------------------------------------#
-def ge_peakcounts(p1, p3, p4, p5):
+def ge_binCounts(x, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11,
+                 useUpper=False, quadBackground=False, peakOnly=False,
+                 backgroundOnly=False):
     """!
     @ingroup Counting
-    Calculate the total number of counts at a specified peak given the peak
-    fitting parameters using an analytic function for the integration from:
+    Calculate the total number of counts at a specified bin location given the
+    peak fitting parameters.
 
     "Analaytic Peak Fitting for Gamma-Ray Spectrum Analysis with Ge Detectors"
     by L.C. Longoria
 
-    This formulation dropped the upper exponential term.
+    This formulation added the ability to do a quadratic backgorund.
 
     @param x: <em> scalar float/integer </em> \n
-        Channel number \n
+        Channel number. \n
     @param p1: \e float \n
-        Gaussian amplitude \n
+        Gaussian amplitude. \n
+    @param p2: \e float \n
+        Gaussian centroid. \n
     @param p3: \e float \n
-        Gaussian width \n
+        Gaussian width. \n
     @param p4: \e float \n
-        Skew Gaussian amplitude  \n
+        Lower skew Gaussian amplitude. \n
     @param p5: \e float \n
-        Skew Gaussian range \n
+        Lower skew Gaussian range. \n
+    @param p6: \e float \n
+        Smeared step amplitude. \n
+    @param p7: \e float \n
+        Background quadratic term \n
+    @param p8: \e float \n
+        Background linear term \n
+    @param p9: \e float \n
+        Background offset \n
+    @param p10: \e float \n
+        High skew Gaussian amplitude.  \n
+    @param p11: \e float \n
+        High Skew Gaussian range. \n
+    @param useUpper: \e boolean \n
+        If true, include upper tail fit. \n
+    @param quadBackground: \e boolean \n
+        If true, use a quadratic background. \n
+    @param peakOnly: \e boolean \n
+        Only return the counts in the peak. \n
+    @param backgroundOnly: \e boolean \n
+        Only return the counts in the background. \n
 
-    @return \e float: The number of counts in the specified peak \n
+    @return \e float: The number of counts in the specified bin
+    line. If peakOnly=True, this return value is background subtracted. \n
     """
-    t1 = p1*p3*(2*np.pi)**0.5
-    t2 = p3*p4*(gamma(p5)*gamma(4-p5))/6.
-    if t2 > t1:
-        return t1
+    f1 = gauss(x, p1, p2, p3)
+    f2 = smeared_step(x, p2, p3, p6)
+    f3 = left_skew_gauss(x, p2, p3, p4, p5)
+    if useUpper:
+        f4 = right_skew_gauss(x, p2, p3, p10, p11)
     else:
-        return t1+t2
+        f4 = 0
+    if quadBackground:
+        f5 = quadratic(x, p7, p8, p9)
+    else:
+        f5 = linear(x, p8, p9)
+    if peakOnly:
+        return f1+f3+f4
+    elif backgroundOnly:
+        return f2+f5
+    else:
+        return f1+f2+f3+f4+f5
 
 #------------------------------------------------------------------------------#
-def ge_peakfit(channels, counts, countStd=[], peakWidth=20):
+def ge_peakfit(channels, counts, countStd=[], peakWidth=20, plotComp=False,
+              plotTitle=''):
     """!
     @ingroup Counting
     Calculate the total number of counts in a peak. Fits to an the 9 parameter
@@ -400,13 +435,18 @@ def ge_peakfit(channels, counts, countStd=[], peakWidth=20):
     Currently only handles one peak at a time.
 
     @param channels: <em> array of integers or floats </em> \n
-        The channel index locations for the region of interest to fit \n
+        The channel index locations for the region of interest to fit. \n
     @param counts: <em> array of integers or floats </em> \n
-        The number of counts in a given channel \n
+        The number of counts in a given channel. \n
     @param countStd: <em> array of integers or floats </em> \n
-        The 1\f$\sigma\f$ uncertainty in the counts for each bin \n
+        The 1\f$\sigma\f$ uncertainty in the counts for each bin. \n
     @param countStd: <em> integer or float </em> \n
-        The full width at base of the peak in channels \n
+        The full width at base of the peak in channels. \n
+    @param plotComp: \e boolean \n
+        An optional specifier to plot the comparison between the model and
+        the experimental results. \n
+    @param plotTitle: \e string \n
+        An optional title to the optional plot. \n
 
     @return \e float: The number of counts in the peak \n
             \e float: The uncertainty of counts in the peak \n
@@ -415,56 +455,112 @@ def ge_peakfit(channels, counts, countStd=[], peakWidth=20):
 
     # Get initial estimate of fitting parameters by simple gaussian fit
     peak = peakutils.indexes(counts, thres=0.25, min_dist=10)[0]
-    (a, b, c) = peakutils.peak.gaussian_fit(channels[peak-peakWidth: 
+    (a, b, c) = peakutils.peak.gaussian_fit(channels[peak-peakWidth:
                                                   peak+peakWidth],
-                                            counts[peak-peakWidth: 
-                                                  peak+peakWidth], center_only=False)
+                                            counts[peak-peakWidth:
+                                                  peak+peakWidth],
+                                            center_only=False)
+
     # Calculate standard deviations if not supplied
     if len(countStd) != len(counts):
         countStd = np.sqrt(np.asarray(counts))
         countStd[countStd == 0] = 1
-    # Fit using initial estimates from gaussian fit
-    popt, pcov = curve_fit(lambda x, p3, p4, p5, p6, p7, p8, p9: \
-                        ge_bincounts(x, a, b, p3, p4, p5, p6, p7, p8, p9),
-                        channels, counts, bounds=(0, 5E5), sigma=countStd,
-                        absolute_sigma=True,
-                        p0=[abs(c), a/20., abs(c)/10., a/100., .01, 1, 10])
-    popt = np.insert(popt, 0, b)
-    popt = np.insert(popt, 0, a)
-    peakCounts = ge_peakcounts(popt[0], popt[2], popt[3], popt[4])
-    peakStd = sqrt(peakCounts)
+
+    # Set initial estimates and bounds using gaussian and linear bkgrnd
+    slope = (counts[-1]-counts[0])/(channels[-1]-channels[0])
+    y0 = np.average(counts[-11:-1])-slope*channels[-1]
+    initGuess = np.array([a, b, abs(c), a/20., abs(c)/4., counts[0]*0.5, 0.0,
+               slope, y0, a/1000., abs(c)/2.])
+    lb = np.array([0.75*a, b-5, 0.9*abs(c), 0., abs(c)/10., 0., -1E-6,
+               0.0, 0.1*y0, a/10000., abs(c)/10.])
+    ub = np.array([1.25*a, b+5, 1.1*abs(c), a/2., abs(c)/2., counts[0]*2, 1E-6,
+               max(slope*1.25, 1E-7), 1.05*y0, a/100., 2*abs(c)])
+    if slope < 0:
+        lb[7] = slope*1.25
+        ub[7] = 0.0
+    if y0 < 0:
+        lb[8] = 10*y0
+        ub[8] = 0.95*y0
+
+    # Fit the peak
+    try:
+        popt, pcov = curve_fit(lambda x, p1, p2, p3, p4, p5, p6, p7, p8, p9,
+                               p10, p11: ge_binCounts(x, p1, p2, p3, p4, p5,
+                                                      p6, p7, p8, p9, p10, p11,
+                                                 quadBackground=True), channels,
+                               counts, sigma=countStd, absolute_sigma=True,
+                               p0=initGuess, bounds=(lb, ub))
+    except RuntimeError:
+        if slope < 0:
+            lb[7] = lb[7]*1.5
+        else:
+            ub[7] = ub[7]*1.5
+        popt, pcov = curve_fit(lambda x, p1, p2, p3, p4, p5, p6, p7, p8, p9,
+                               p10, p11: ge_binCounts(x, p1, p2, p3, p4, p5,
+                                                  p6, p7, p8, p9, p10, p11,
+                                                 useUpper=True,
+                                                 quadBackground=True),
+                               channels, counts, sigma=countStd,
+                               absolute_sigma=True, p0=initGuess,
+                               bounds=(lb, ub), max_nfev=10000)
 
     # Get the bin by bin model data and perform chi squared test
     modelCounts = []
     for ch in channels:
-        modelCounts.append(ge_bincounts(ch, *popt))
-    redChiSq = red_chisq(counts, modelCounts, countStd, freeParams=9)
+        modelCounts.append(ge_binCounts(ch, *popt))
+    redChiSq = red_chisq(counts, modelCounts, countStd, freeParams=11)
 
-    return peakCounts, peakStd, redChiSq
+    # Plot and pause for review
+    if plotComp:
+        comp_plot(channels, counts, countStd, modelCounts, includeChi2=True,
+                  freeParams=11, dataLabel=['measured', 'fit'],
+                  xLabel='Channel', yLabel='Counts', xMin=min(channels),
+                  xMax=max(channels), logY=True, yMin=1,
+                  title='{}: {:.0f} counts '.format(plotTitle,
+                                                   sum(modelCounts),
+                                                   sqrt(sum(modelCounts))))
+
+    return sum(modelCounts), sqrt(sum(modelCounts)), redChiSq
 
 #------------------------------------------------------------------------------#
-def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20):
+def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20,
+                     adaptive=False):
     """!
     @ingroup Counting
     Find the fitting window for a list of peaks by locating the nearest peak
 
     @param ch: <em> array/list of integers or floats </em> \n
-        The channel index locations \n
+        The channel index locations. \n
     @param maxWindow: \e integer \n
         The half size of the window surrounding the peak. If no other peak is
-        found, the window will extend from peak-window : peak+window \n
+        found, the window will extend from peak-window : peak+window. \n
     @param peakWidth: \e integer \n
         The nominal maximum full width at base of a peak in the spectrum of
-        interest \n
+        interest. \n
     @param minWindow: \e integer \n
         The minimum half window size to be used.  This should be greater than
-        peakWidth \n
+        peakWidth. \n
+    @param adaptive: \e boolean \n
+        If adaptive is true, a multiple of the minWindow will be used for the
+        maxWindow and the peakWindow and minWindow will scale as a function of
+        the channels. \n
 
     @return <em> dictionary of lists </em>: [lower channel, upper channel]
         of the window \n
     """
+
     windows = {}
+    adaptiveMin = minWindow #Variable to prevent uncontrolled window growth
+    adaptiveWidth = peakWidth
+
     for i in range(0, len(ch)):
+        # Set the adaptive windows
+        if adaptive:
+            maxWindow = int(adaptiveMin * (ch[i]//1000 + 1))
+            minWindow = int(adaptiveMin * (ch[i]//1000*0.5 + 1))
+            peakWidth = int(adaptiveWidth * (ch[i]//1000 + 1))
+
+        # Set the windows.
         windows[ch[i]] = [0, 0]
         if i == 0 and i != len(ch)-1:
             windows[ch[i]][0] = ch[i] - maxWindow
@@ -499,7 +595,7 @@ def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20):
     return windows
 
 #------------------------------------------------------------------------------#
-def counts(initActivity, halfLife, countTime, units='Bq', countUnits='s'):
+def get_counts(initActivity, halfLife, countTime, units='Bq', countUnits='s'):
     """!
     @ingroup Counting
     Determine the number of counts over a set counting interval assuming no
@@ -517,7 +613,7 @@ def counts(initActivity, halfLife, countTime, units='Bq', countUnits='s'):
        This determines the units for the activity. Options are "uCi", "Ci",
        or "Bq".  \n
     @param countUnits: \e string \n
-       This determines the units provided for the count time. Options are 
+       This determines the units provided for the count time. Options are
        "s", "h", "d", or "y".  \n
 
     @return \e float: The number of counts \n
@@ -556,7 +652,7 @@ def counts(initActivity, halfLife, countTime, units='Bq', countUnits='s'):
         return decay(halfLife, initActivity, t, units='Bq')
 
     return quad(integrand, 0, countTime)[0]
-    
+
 #------------------------------------------------------------------------------#
 def foil_count_time(sigma, halfLife, init, efficiency, background=0.001, \
                     units="atoms", precision=30):
@@ -614,7 +710,7 @@ def foil_count_time(sigma, halfLife, init, efficiency, background=0.001, \
             return decay(halfLife, init, t, units)*efficiency
 
     # If the activity is too high, then the dead time will be high; warn user.
-    # This assumes 5% dead time on a germanium as determined with a Co60 and 
+    # This assumes 5% dead time on a germanium as determined with a Co60 and
     # Eu152 src; it is not perfect.
     # This is a functionality that should exist, but the current logic is
     # terrible and flogs the output when coupled with an optimized count
@@ -642,7 +738,7 @@ def foil_count_time(sigma, halfLife, init, efficiency, background=0.001, \
 
 #------------------------------------------------------------------------------#
 def optimal_count_plan(foilParams, handleTime=60, detR=5, background=0.001,
-                       units="Bq", toMinute=False,  funcDict={},
+                       units="Bq", toMinute=False, funcDict={},
                        funcParamDict={}, func=germanium_eff_exp, **kwargs):
     """!
     @ingroup Counting
@@ -677,13 +773,13 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, background=0.001,
        If this flag is set to True, then the count times are rounded to the
        nearest minute. Results returned are still in seconds. \n
     @param funcDict: <em> disctionary of functions </em> \n
-       If multiple positions are used, this is a dictionary of the fitting 
+       If multiple positions are used, this is a dictionary of the fitting
        function used vs position where the key is the position name, and the
-       value is the fitting function. funcParamDict must be specified if this 
+       value is the fitting function. funcParamDict must be specified if this
        argument is used. Priority is given to the dictionaries if both methods
        are given as inputs. \n
     @param funcParamDict: <em> disctionary of functions </em> \n
-       If multiple positions are used, this is a dictionary of the fitting 
+       If multiple positions are used, this is a dictionary of the fitting
        function parameters vs position where the key is the position name,
        and the value is the N fitting paramters for the function specified in
        funcDict. funcDict must be specified if this argument is used.\n
@@ -691,7 +787,7 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, background=0.001,
        The effieciency fitting function to calculate the detector absolute
        efficiency. This argument is only valid if there is only one counting
        position being counsidered. Do not specify funcDict and funcParamDict
-       if this argument is used. Do specify the kwargs appropriate for this 
+       if this argument is used. Do specify the kwargs appropriate for this
        function. \n
     @param kwargs \n
         Keyword arguments for the fitting function. This argument is only
@@ -735,7 +831,7 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, background=0.001,
                     absEff = funcDict[pos](df.at[rx, 'gammaEnergy'],
                                            *funcParamDict[pos]) \
                      *(volume_solid_angle(df.at[rx, 'foilR'], detR, pos)) \
-                     / fractional_solid_angle(detR, pos) 
+                     / fractional_solid_angle(detR, pos)
                 elif funcDict != {} and funcParamDict != {}:
                     print ("WARNING: Both funcDict and funcParamDict were not ",
                           "specified. A single efficieny fit will be used.")
@@ -744,8 +840,8 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, background=0.001,
                      *(volume_solid_angle(df.at[rx, 'foilR'], detR, pos)) \
                      / fractional_solid_angle(detR, pos)
                 else:
-                    print ("WARNING: Kwargs were not specified for the fitting ",
-                          "function. Function defaults will be used, but may ",
+                    print ("WARNING: Kwargs were not specified for the fitting",
+                          " function. Function defaults will be used, but may ",
                           "not be appropriate.")
                     absEff = func(df.at[rx, 'gammaEnergy']) \
                      *(volume_solid_angle(df.at[rx, 'foilR'], detR, pos)) \
@@ -798,13 +894,12 @@ def optimal_count_plan(foilParams, handleTime=60, detR=5, background=0.001,
             bestOrder = cp.copy(order)
             totalTime = tmpTotal
             bestDF = cp.deepcopy(df)
-    
-    
+
     return bestDF.sort_values(by='countOrder'), bestOrder, totalTime
 
 #------------------------------------------------------------------------------#
 def count_plan(df, handleTime=60, detR=5, background=0.01,
-                       units="Bq", toMinute=False,  funcDict={},
+                       units="Bq", toMinute=False, funcDict={},
                        funcParamDict={}, func=germanium_eff_exp, **kwargs):
     """!
     @ingroup Counting
@@ -839,13 +934,13 @@ def count_plan(df, handleTime=60, detR=5, background=0.01,
        If this flag is set to True, then the count times are rounded to the
        nearest minute. Results returned are still in seconds. \n
     @param funcDict: <em> disctionary of functions </em> \n
-       If multiple positions are used, this is a dictionary of the fitting 
+       If multiple positions are used, this is a dictionary of the fitting
        function used vs position where the key is the position name, and the
-       value is the fitting function. funcParamDict must be specified if this 
+       value is the fitting function. funcParamDict must be specified if this
        argument is used. Priority is given to the dictionaries if both methods
        are given as inputs. \n
     @param funcParamDict: <em> disctionary of functions </em> \n
-       If multiple positions are used, this is a dictionary of the fitting 
+       If multiple positions are used, this is a dictionary of the fitting
        function parameters vs position where the key is the position name,
        and the value is the N fitting paramters for the function specified in
        funcDict. funcDict must be specified if this argument is used.\n
@@ -853,7 +948,7 @@ def count_plan(df, handleTime=60, detR=5, background=0.01,
        The effieciency fitting function to calculate the detector absolute
        efficiency. This argument is only valid if there is only one counting
        position being counsidered. Do not specify funcDict and funcParamDict
-       if this argument is used. Do specify the kwargs appropriate for this 
+       if this argument is used. Do specify the kwargs appropriate for this
        function. \n
     @param kwargs \n
         Keyword arguments for the fitting function. This argument is only
@@ -868,11 +963,11 @@ def count_plan(df, handleTime=60, detR=5, background=0.01,
 
     # Get activity in Bq
     if units == "uCi":
-        foilParams['initActivity'] = foilParams['initActivity']*1E-6*3.7E10
-        foilParams['activityUncert'] = foilParams['activityUncert']*1E-6*3.7E10
+        df['initActivity'] = df['initActivity']*1E-6*3.7E10
+        df['activityUncert'] = df['activityUncert']*1E-6*3.7E10
     elif units == "Ci":
-        foilParams['initActivity'] = foilParams['initActivity']*3.7E10
-        foilParams['activityUncert'] = foilParams['activityUncert']*3.7E10
+        df['initActivity'] = df['initActivity']*3.7E10
+        df['activityUncert'] = df['activityUncert']*3.7E10
 
     # Initialize local variables
     df['countTime'] = 0.0
@@ -881,8 +976,8 @@ def count_plan(df, handleTime=60, detR=5, background=0.01,
     df['countActUncert'] = cp.deepcopy(df['activityUncert'])
     totalCT = 0.0
     order = list(df.foil)
-    
-    # Determine count time for each foil 
+
+    # Determine count time for each foil
     for foil in order:
         ct = 0
         for rx in df.groupby("foil").get_group(foil).index:
@@ -893,7 +988,7 @@ def count_plan(df, handleTime=60, detR=5, background=0.01,
                 absEff = funcDict[pos](df.at[rx, 'gammaEnergy'],
                                        *funcParamDict[pos]) \
                        *(volume_solid_angle(df.at[rx, 'foilR'], detR, pos)) \
-                       / fractional_solid_angle(detR, pos) 
+                       / fractional_solid_angle(detR, pos)
             elif funcDict != {} and funcParamDict != {}:
                 print ("WARNING: Both funcDict and funcParamDict were not ",
                        "specified. A single efficieny fit will be used.")
@@ -918,7 +1013,7 @@ def count_plan(df, handleTime=60, detR=5, background=0.01,
                                                  units='Bq')[0]
                 if toMinute:
                     df.at[rx, 'countTime'] = ceil(df.at[rx, 'countTime']/60.)
-                    
+
             except AssertionError:
                 df.at[rx, 'countTime'] = 1E99
                 break
@@ -944,12 +1039,11 @@ def count_plan(df, handleTime=60, detR=5, background=0.01,
                 df.at[rx, 'countActUncert'] = decay(df.at[rx, 'halfLife'], \
                                               df.at[rx, 'countActUncert'], \
                                               ct+handleTime, units='Bq')
-    
-    
+
     return df, totalCT
 
 #------------------------------------------------------------------------------#
-def channel_statistics(df, countTime, detR=5, units='Bq', 
+def channel_statistics(df, countTime, detR=5, units='Bq',
                        countUnits='s', func=None, **kwargs):
     """!
     @ingroup Counting
@@ -986,19 +1080,19 @@ def channel_statistics(df, countTime, detR=5, units='Bq',
        This determines the units provided and whether initial atoms or
        activity is provided. Options are "uCi", "Ci", or "Bq"  \n
     @param countUnits: \e string \n
-       This determines the units provided for the count time. Options are 
+       This determines the units provided for the count time. Options are
        "s", "h", "d", or "y".  \n
     @param func: \e function \n
        The effieciency fitting function to calculate the detector absolute
        efficiency. This argument is only valid if there is only one counting
        position being counsidered. Do not specify funcDict and funcParamDict
-       if this argument is used. Do specify the kwargs appropriate for this 
+       if this argument is used. Do specify the kwargs appropriate for this
        function. \n
     @param kwargs \n
         Keyword arguments for the fitting function. This argument is only
         valid if there is only one counting position being counsidered.
 
-    @return \e dataframe: a copy of the original dataframe with a count, 
+    @return \e dataframe: a copy of the original dataframe with a count,
         count incertainty, and statistics column added (in fractional form) \n
     """
 
@@ -1024,21 +1118,21 @@ def channel_statistics(df, countTime, detR=5, units='Bq',
         df['activityUncert'] = df['activityUncert']*3.7E10
     elif units != "Bq":
         print "WARNING: Invalid activity units specified. Assuming Bq."
-    
+
     # Calculate the total counts
     for ind in df.index:
         if func != None:
-            df.at[ind, 'counts'] = counts(df.at[ind, 'initActivity'],
+            df.at[ind, 'counts'] = get_counts(df.at[ind, 'initActivity'],
                                        df.at[ind, 'halfLife'],
                                        countTime)\
                                 *func(df.at[ind, 'gammaEnergy'],
                                       **kwargs)\
                         *(volume_solid_angle(df.at[ind, 'foilR'], detR,
                                          df.at[ind, 'det2FoilDist']))\
-                        /fractional_solid_angle(detR, 
+                        /fractional_solid_angle(detR,
                                            df.at[ind, 'det2FoilDist'])
         else:
-            df.at[ind, 'counts'] = counts(df.at[ind, 'initActivity'],
+            df.at[ind, 'counts'] = get_counts(df.at[ind, 'initActivity'],
                                        df.at[ind, 'halfLife'],
                                        countTime)
         df.at[ind, 'countsUncert'] = df.at[ind, 'activityUncert']\

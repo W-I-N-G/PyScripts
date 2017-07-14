@@ -8,11 +8,13 @@
 
 @author James Bevins
 
-@date 11Jul17
+@date 14Jul17
 """
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
+
+from DataAnalysis.Stats import red_chisq
 
 #------------------------------------------------------------------------------#
 def line_plot(*args, **kwargs):
@@ -79,13 +81,13 @@ def line_plot(*args, **kwargs):
     if 'savePath' not in kwargs.keys():
         kwargs['savePath'] = ''
     if 'xMin' not in kwargs.keys():
-        kwargs['xMin'] = min(min(a[0] for a in args))*0.75
+        kwargs['xMin'] = min(min(a[0]) for a in args)*0.75
     if 'xMax' not in kwargs.keys():
-        kwargs['xMax'] = max(max(a[0] for a in args))*1.25
+        kwargs['xMax'] = max(max(a[0]) for a in args)*1.25
     if 'yMin' not in kwargs.keys():
-        kwargs['yMin'] = min(min(a[1] for a in args))*0.5
+        kwargs['yMin'] = min(min(a[1]) for a in args)*0.5
     if 'yMax' not in kwargs.keys():
-        kwargs['yMax'] = max(max(a[1] for a in args))*1.5
+        kwargs['yMax'] = max(max(a[1]) for a in args)*1.5
     if 'xMinorTicks' not in kwargs.keys():
         kwargs['xMinorTicks'] = 0
     if 'yMinorTicks' not in kwargs.keys():
@@ -220,13 +222,13 @@ def scatter_plot(*args, **kwargs):
     if 'savePath' not in kwargs.keys():
         kwargs['savePath'] = ''
     if 'xMin' not in kwargs.keys():
-        kwargs['xMin'] = min(min(a[0] for a in args))*0.75
+        kwargs['xMin'] = min(min(a[0]) for a in args)*0.75
     if 'xMax' not in kwargs.keys():
-        kwargs['xMax'] = max(max(a[0] for a in args))*1.25
+        kwargs['xMax'] = max(max(a[0]) for a in args)*1.25
     if 'yMin' not in kwargs.keys():
-        kwargs['yMin'] = min(min(a[1] for a in args))*0.5
+        kwargs['yMin'] = min(min(a[1]) for a in args)*0.5
     if 'yMax' not in kwargs.keys():
-        kwargs['yMax'] = max(max(a[1] for a in args))*1.5
+        kwargs['yMax'] = max(max(a[1]) for a in args)*1.5
     if 'xMinorTicks' not in kwargs.keys():
         kwargs['xMinorTicks'] = 0
     if 'yMinorTicks' not in kwargs.keys():
@@ -278,6 +280,167 @@ def scatter_plot(*args, **kwargs):
             ax1.plot(arg[0], arg[1], marker[n], linestyle='None',
                      label=kwargs['dataLabel'][n], color='k')
         n += 1
+
+    # Add and locate legend
+    if kwargs['legend'] == True:
+        plt.legend(borderaxespad=0.75, loc=1, fontsize=16, handlelength=5,
+                   borderpad=0.5, labelspacing=0.75, fancybox=True,
+                   framealpha=0.5, numpoints=1)
+
+    plt.show()
+
+    if kwargs['savePath'] != '':
+        fig.savefig(kwargs['savePath'], bbox_inches='tight')
+
+#------------------------------------------------------------------------------#
+def comp_plot(x, dataY, dataUncert, modelY, includeChi2=True,
+              freeParams=1, **kwargs):
+    """!
+    Comparies a series of experimental data points (plots as points
+    without lines) to a model (plots as a line).  The residuals are
+    displayed (abs(residuals) if loxY=True), and the title can show
+    the reduced Chi2 if specified.
+
+    It is assumed that the x locations of the experimental data and
+    model match.
+
+    @param x: <em> list or array of integers or floats </em> \n
+        The experimental data. \n
+    @param dataY: <em> list or array of integers or floats </em> \n
+        The experimental data. \n
+    @param dataUncert: <em> list or array of integers or floats </em> \n
+        Experimental data 1\f$\sigma\f$ standard deviation. \
+    @param modelY: <em> list or array of integers or floats </em> \n
+        The model data. \n.
+    @param includeChi2: \e boolean \n
+        Optional specifier to include the reduced chi2 calculation on
+        the plot. \n
+    @param freeParams: \e integer \n
+        The number of free parameters in the model. \n
+    @param kwargs: <em> optional plotting inputs </em> \n
+        An optional list of additional plot options.The options are
+        listed as kwargs parameters below \n
+    @param logX: <em> kwargs boolean </em> \n
+        Flag to use a log scale on the x axis \n
+    @param logY: <em> kwargs boolean </em> \n
+        Flag to use a log scale on the y axis \n
+    @param title: <em> kwargs string </em> \n
+        An optional specification for the plot title. \n
+    @param dataLabel: <em> kwargs string </em> \n
+        An optional specification for the data set label to use in the
+        legend. \n
+    @param legend: <em> kwargs string </em> \n
+        An optional specification to include or not include a legend. \n
+    @param xLabel: <em> kwargs string </em> \n
+        An optional specification for the x axis label. \n
+    @param yLabel: <em> kwargs string </em> \n
+        An optional specification for the y axis label. \n
+    @param savePath: <em> kwargs string </em> \n
+        An optional specification for the save location. \n
+    @param xMin: <em> kwargs integer or float </em> \n
+        An optional specification for the minimum X axis value. \n
+    @param xMax: <em> kwargs integer or float </em> \n
+        An optional specification for the maximum X axis value. \n
+    @param yMin: <em> kwargs integer or float </em> \n
+        An optional specification for the minimum Y axis value. \n
+    @param yMax: <em> kwargs integer or float </em> \n
+        An optional specification for the maximum Y axis value. \n
+    @param xMinorTicks: <em> kwargs integer or float </em> \n
+        An optional specification for the location of the X-axis minor tick
+        marks. \n
+    @param yMinorTicks: <em> kwargs integer or float </em> \n
+        An optional specification for the location of the Y-axis minor tick
+        marks. \n
+    """
+
+    # Set defaults if not specified
+    if 'logX' not in kwargs.keys():
+        kwargs['logX'] = False
+    if 'logY' not in kwargs.keys():
+        kwargs['logY'] = False
+
+    # Calculate the residuals
+    if kwargs['logY']:
+        residuals = abs(dataY - modelY)
+    else:
+        residuals = (dataY - modelY)
+
+    # Set defaults if not specified
+    if 'title' not in kwargs.keys():
+        kwargs['title'] = ''
+    if 'dataLabel' not in kwargs.keys():
+        kwargs['dataLabel'] = ['experiment', 'model']
+    if 'legend' not in kwargs.keys():
+        kwargs['legend'] = True
+    if 'xLabel' not in kwargs.keys():
+        kwargs['xLabel'] = ''
+    if 'yLabel' not in kwargs.keys():
+        kwargs['yLabel'] = ''
+    if 'savePath' not in kwargs.keys():
+        kwargs['savePath'] = ''
+    if 'xMin' not in kwargs.keys():
+        kwargs['xMin'] = min(x)
+    if 'xMax' not in kwargs.keys():
+        kwargs['xMax'] = max(x)
+    if 'yMin' not in kwargs.keys():
+        kwargs['yMin'] = min(min(dataY), min(modelY), min(residuals))
+        if kwargs['yMin'] < 0:
+            kwargs['yMin'] = kwargs['yMin']*1.25
+        else:
+            kwargs['yMin'] = kwargs['yMin']*0.75
+    if 'yMax' not in kwargs.keys():
+        kwargs['yMax'] = max(max(dataY), max(modelY))*1.25
+    if 'xMinorTicks' not in kwargs.keys():
+        kwargs['xMinorTicks'] = 0
+    if 'yMinorTicks' not in kwargs.keys():
+        kwargs['yMinorTicks'] = 0
+
+    # Allow use of Tex sybols
+    plt.rc('text', usetex=True)
+
+    # Set up figure
+    fig = plt.figure(figsize=(9, 6))
+    ax1 = fig.add_axes([0.1, 0.1, 0.8, 0.85])
+
+    # Set plot title.
+    if includeChi2:
+        redChiSq = red_chisq(dataY, modelY, dataUncert,
+                             freeParams=freeParams)
+        ax1.set_title('{} $\chi^2$={:.2f}'.format(kwargs['title'], redChiSq),
+                     fontsize=30, weight="bold")
+    else:
+        ax1.set_title('{}'.format(kwargs['title']), fontsize=30, weight="bold")
+
+    # Set primary axes
+    ax1.axis([kwargs['xMin'], kwargs['xMax'], kwargs['yMin'], kwargs['yMax']])
+    if kwargs['logX']:
+        ax1.set_xscale('log')
+    if kwargs['logY']:
+        ax1.set_yscale('log')
+
+    # Set axes labels
+    ax1.set_xlabel('{}'.format(kwargs['xLabel']), fontsize=22,
+                   weight='bold', y=-0.04)
+    ax1.set_ylabel('{}'.format(kwargs['yLabel']), fontsize=22,
+                   weight="bold", x=-0.04)
+    if kwargs['xMinorTicks'] != 0:
+        xMinorLocator = MultipleLocator(kwargs['xMinorTicks'])
+        ax1.xaxis.set_minor_locator(xMinorLocator)
+    if kwargs['yMinorTicks'] != 0:
+        yMinorLocator = MultipleLocator(kwargs['yMinorTicks'])
+        ax1.yaxis.set_minor_locator(yMinorLocator)
+    ax1.tick_params(axis='both', which='major', direction='inout',
+                    labelsize=18, width=3, top=True, right=True, length=7)
+    ax1.tick_params(axis='both', which='minor', direction='in', width=2.5,
+                   top=True, right=True, length=3)
+
+    # Add datasets to plot
+    ax1.errorbar(x, dataY, yerr=dataUncert, marker='o',
+                 linestyle='None', capsize=4, capthick=1.5,
+                 label=kwargs['dataLabel'][0], color='k')
+    ax1.plot(x, modelY, linestyle='-', label=kwargs['dataLabel'][1],
+             color='k')
+    ax1.plot(x, residuals, linestyle='--', label='Residuals', color='k')
 
     # Add and locate legend
     if kwargs['legend'] == True:

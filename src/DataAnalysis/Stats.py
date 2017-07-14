@@ -32,13 +32,13 @@ def red_chisq(yData, yMod, standDev=[], freeParams=2):
     See http://physics.ucsc.edu/~drip/133/ch4.pdf for reference.
 
     @param yData: <em> Numpy array of integers or floats </em> \n
-        Experimental data
+        Experimental data. \n
     @param yMod: <em> Numpy array of integers or floats </em> \n
-        Model data
+        Model data. \n
     @param standDev: <em> Numpy array of integers or floats </em> \n
-        Experimental data 1\f$\sigma\f$ standard deviation
+        Experimental data 1\f$\sigma\f$ standard deviation. \n
     @param freeParams: \e integer \n
-        The number of free parameters in the model
+        The number of free parameters in the model. \n
 
     @return \e float: The \f$\frac{\chi^2}{\nu}\f$ statistic \n
     """
