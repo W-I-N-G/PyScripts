@@ -9,7 +9,7 @@
 
 @author James Bevins
 
-@date 14Jun17
+@date 17Jul17
 """
 
 import os
@@ -17,8 +17,10 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from matplotlib.ticker import MultipleLocator
 from matplotlib.colors import LogNorm
+
+from DataManipulation import check_data
+from Support.Plotting import plot
 
 #------------------------------------------------------------------------------#
 class Histogram(object):
@@ -148,29 +150,7 @@ class Histogram(object):
         self.midPtData = []
 
         # Check for expected data consistency
-        if edgeLoc == "low":
-            if len(edges) == len(data):
-                try:
-                    edges.append(edges[-1]+(edges[-1]-edges[-2]))
-                except TypeError:
-                    edges = edges.tolist()
-                    edges.append(edges[-1]+(edges[-1]-edges[-2]))
-        if edgeLoc == "up":
-            if len(edges) == len(data):
-                try:
-                    edges.insert(0, 0)
-                except TypeError:
-                    edges = edges.tolist()
-                    edges.insert(0, 0)
-        if edgeLoc == "mid":
-            tmp = []
-            width = edges[1]-edges[0]
-            tmp.append(edges[0]-0.5*width)
-            for i in range(1, len(edges)):
-                width = edges[i]-edges[i-1]
-                tmp.append(edges[i]-0.5*width)
-            tmp.append(edges[-1]+0.5*width)
-            edges = tmp
+        edges = check_data(edges, data, edgeLoc)
 
         # Build histogram data
         for i in range(1, len(data)+1):
@@ -181,137 +161,42 @@ class Histogram(object):
             self.midPtX.append((edges[i-1]+edges[i])/2)
             self.midPtData.append(data[i-1])
 
-        self.xEdges.append(edges[-1])
-        self.data.append(0.0)
-
     def plot(self, *args, **kwargs):
         """!
-        Plots a histogram object.
+        Plots a histogram object with up to 11 additional histograms.
 
         @param self: <em> histogram pointer </em> \n
             The histogram pointer. \n
         @param args: \e histograms \n
             An optional list of additional histograms to plot. \n
         @param kwargs: <em> optional plotting inputs </em> \n
-            An optional list of additional plot MatPlotLib plotoptions.  
-            This is wrapped in kwargs because 2.7 doesn't support args
-            and keyword specified arguments. The options supported are
-            listed as kwargs parameters below. \n
-        @param logX: <em> kwargs boolean </em> \n
-            Flag to use a log scale on the x axis \n
-        @param logY: <em> kwargs boolean </em> \n
-            Flag to use a log scale on the y axis \n
-        @param title: <em> kwargs string </em> \n
-            An optional specification for the plot title. \n
-        @param xLabel: <em> kwargs string </em> \n
-            An optional specification for the x axis label. \n
-        @param yLabel: <em> kwargs string </em> \n
-            An optional specification for the y axis label. \n
-        @param savePath: <em> kwargs string </em> \n
-            An optional specification for the save location. \n
-        @param xMin: <em> kwargs integer or float </em> \n
-            An optional specification for the minimum X axis value. \n
-        @param xMax: <em> kwargs integer or float </em> \n
-            An optional specification for the maximum X axis value. \n
-        @param yMin: <em> kwargs integer or float </em> \n
-            An optional specification for the minimum Y axis value. \n
-        @param yMax: <em> kwargs integer or float </em> \n
-            An optional specification for the maximum Y axis value. \n
-        @param figSize: <em> kwargs tuple </em> \n
-            The (x,y) scale of the plot. \n
-        @param grid: <em> kwargs boolean </em> \n
-            Specifies whether to plot the tick grid. \n
-        @param legendLoc: <em> kwargs int </em> \n
-            Specifies the legend location. \n
-        @param legend: <em> kwargs int </em> \n
-            Specifies wehter to include the legend. \n
+            An optional list of additional plot MatPlotLib plot options.
+            The supported options are listed in the plot function from
+            the Support.Plotting module. \n
         """
 
         # Set defaults if not specified since 2.7 sucks
-        logX = kwargs.pop('logX', False)
-        logY = kwargs.pop('logY', False)
-        title = kwargs.pop('title', '')
-        xLabel = kwargs.pop('xLabel', '')
-        yLabel = kwargs.pop('yLabel', '')
-        savePath = kwargs.pop('savePath', '')
         xMin = kwargs.pop('xMin', 0)
         xMax = kwargs.pop('xMax', max(self.xEdges)+1)
         yMin = kwargs.pop('yMin', 0.5*min(y for y in self.data if y > 0))
         yMax = kwargs.pop('yMax', 1.5*max(self.data))
-        figSize = kwargs.pop('figSize', (12, 8))
-        grid = kwargs.pop('grid', True)
-        legendLoc = kwargs.pop('legendLoc', 1)
-        legend = kwargs.pop('legend', True)
 
-        # Allow use of Tex sybols
-        plt.rc('text', usetex=True)
-
-        # Set up figure
-        fig = plt.figure(figsize=figSize)
-        ax1 = fig.add_axes([0.1, 0.1, 0.8, 0.85])
-
-        # Preset data set format scheme
-        linewidth = [2, 4]
-        linestyle = ['-', ':', '-.', '--', '-', '-']
-        dashes = [[10, 0.1], [2, 2, 2, 2], [10, 5, 2, 5], 
-                  [10, 5, 10, 5], [10, 2, 2, 2, 2, 2],
-                  [10, 2, 10, 2, 2, 2, 2, 2]]
-        ax1.set_prop_cycle(color=['k', 'k', 'k', 'k', 'k', 'k'])
-
-        # Set axes
-        ax1.axis([xMin, xMax, yMin, yMax])
-        if logX:
-            ax1.set_xscale('log')
-        if logY:
-            ax1.set_yscale('log')
-
-        # Set axes labels and plot title.
-        ax1.set_title('{}'.format(title), fontsize=30, weight="bold")
-        ax1.set_xlabel('{}'.format(xLabel), fontsize=20, weight='bold',
-                       labelpad=10)
-        ax1.set_ylabel('{}'.format(yLabel), fontsize=20, weight="bold",
-                       labelpad=10)
-        
-        # Set minor and major gridlines 
-        #minorLocator = MultipleLocator(1)
-        #ax1.xaxis.set_minor_locator(minorLocator)
-        ax1.xaxis.set_tick_params(which='major', width=2, labelsize=20, length=5)
-        ax1.yaxis.set_tick_params(which='major', width=2, labelsize=20, length=5)
-        ax1.xaxis.set_tick_params(which='minor', width=1.5, length=4)
-        ax1.yaxis.set_tick_params(which='minor', width=1.5, length=4)
-        ax1.xaxis.grid(b=True, which='major', color='0.2', linestyle='-', alpha=0.5)
-        ax1.yaxis.grid(b=True, which='both', color='0.2', linestyle='-', alpha=0.5)
-
-        # Add self to plot
-        ax1.plot(self.xEdges, self.data, linewidth=linewidth[0],
-                 linestyle=linestyle[0], dashes=dashes[0], marker=None,
-                 label=self.label)
-        if self.sigma != None:
-            ax1.errorbar(self.midPtX, self.midPtData, yerr=self.sigma,
-                         marker=None, linestyle='None', capsize=4, capthick=1.5)
-
-        # Plot additional histograms, if specified
-        num = 1
+        # Organize plot data
+        data = []
+        label = []
+        data.append([self.xEdges, self.data])
+        label.append(self.label)
         for arg in args:
-            ax1.plot(arg.xEdges, arg.data, linewidth=linewidth[num//6],
-                     linestyle=linestyle[num%6], dashes=dashes[num%6],
-                     marker=None, label=arg.label)
-            if arg.sigma != []:
-                ax1.errorbar(arg.midPtX, arg.midPtData, yerr=arg.sigma,
-                             marker=None, linestyle='None', capsize=4,
-                             capthick=1.5)
-            num += 1
+            data.append([arg.xEdges, arg.data])
+            label.append(arg.label)
+        if self.sigma != None:
+            data.append([self.midPtX, self.midPtData, self.sigma])
+        for arg in args:
+            if arg.sigma != None:
+                data.append([arg.midPtX, arg.midPtData, arg.sigma])
 
-        # Add and locate legend
-        if self.label != '' and legend == True:
-            plt.legend(borderaxespad=0.75, loc=legendLoc, fontsize=18,
-                       handlelength=5, borderpad=0.5, labelspacing=0.75,
-                       fancybox=True, framealpha=0.75, numpoints=1)
-
-        plt.show()
-
-        if savePath != '':
-            fig.savefig(savePath, bbox_inches='tight')
+        plot(*data, dataLabel=label, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax,
+             **kwargs)
 
     def write(self, path, includeUncert=False, edge=False):
         """!
@@ -627,7 +512,7 @@ class Histogram2D(Histogram):
         if 'yMax' not in kwargs.keys():
             kwargs['yMax'] = max(self.yEdges)
         if 'zMin' not in kwargs.keys():
-            wargs['zMin'] = 1E-6
+            kwargs['zMin'] = 1E-6
         if 'zMax' not in kwargs.keys():
             kwargs['zMax'] = np.max(self.data)
         if 'zIntervals' not in kwargs.keys():

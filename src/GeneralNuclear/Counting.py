@@ -442,6 +442,9 @@ def ge_peakfit(channels, counts, countStd=[], peakWidth=20, plotComp=False,
         The 1\f$\sigma\f$ uncertainty in the counts for each bin. \n
     @param countStd: <em> integer or float </em> \n
         The full width at base of the peak in channels. \n
+    @param peakWidth: \e integer \n
+        The nominal maximum full width at base of a peak in the spectrum of
+        interest. \n
     @param plotComp: \e boolean \n
         An optional specifier to plot the comparison between the model and
         the experimental results. \n

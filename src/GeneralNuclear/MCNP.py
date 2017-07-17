@@ -159,7 +159,7 @@ def batchmaker(path, inputSuffix="i", version="mcnp6", tasks=1,
         The MCNP version to run. \n
     @param tasks: \e integer \n
         The number of tasks to specify for each run. \n
-    @param ouputType: \e string \n
+    @param scriptType: \e string \n
         The type of script file to write. \n
     """
 

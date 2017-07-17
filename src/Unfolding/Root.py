@@ -8,7 +8,7 @@
 
 @author James Bevins
 
-@date 8Mar17
+@date 14July17
 """
 
 import os
@@ -16,10 +16,7 @@ import sys
 
 from datetime import datetime
 
-
-sys.path.insert(0, os.path.abspath(
- '/home/pyne-user/Dropbox/UCB/Computational_Tools/Scripts/Python/GeneralNuclear'))
-from BasicNuclearCalcs import solid_angle_approx
+from GeneralNuclear.BasicNuclearCalcs import solid_angle_approx
 
 #------------------------------------------------------------------------------#
 class CalibParams(object):
