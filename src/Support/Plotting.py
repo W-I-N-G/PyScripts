@@ -13,6 +13,7 @@
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
+from matplotlib import rc,rcParams
 
 from DataAnalysis.Stats import red_chisq
 
@@ -108,7 +109,7 @@ def plot(*args, **kwargs):
     color = kwargs.pop('color', ['k', 'k', 'k', 'k', 'k', 'k'])
     linestyle = kwargs.pop('linestyle', ['-', ':', '-.', '--', '-', '-'])
     linewidth = kwargs.pop('linewidth', [2, 4])
-    dashes = kwargs.pop('dashes', [[10, 0.1], [2, 2, 2, 2], [10, 5, 2, 5],
+    dashes = kwargs.pop('dashes', [[10, 0.001], [2, 2, 2, 2], [10, 5, 2, 5],
                                    [10, 5, 10, 5], [10, 2, 2, 2, 2, 2],
                                    [10, 2, 10, 2, 2, 2, 2, 2]])
     if includeMarkers:
@@ -118,6 +119,9 @@ def plot(*args, **kwargs):
 
     # Allow use of Tex sybols
     plt.rc('text', usetex=True)
+    #plt.rc('axes', linewidth=2)
+    plt.rc('font', weight='bold')
+    rcParams['text.latex.preamble'] = [r'\boldmath']
 
     # Set up figure
     fig = plt.figure(figsize=figsize)
@@ -141,11 +145,7 @@ def plot(*args, **kwargs):
         yMinorLocator = MultipleLocator(kwargs['yMinorTicks'])
         ax1.yaxis.set_minor_locator(yMinorLocator)
     ax1.tick_params(axis='both', which='major', direction='inout',
-                    labelsize=18, width=3, top=True, right=True)
-    ax1.tick_params(axis='both', which='minor', direction='in', width=2.5,
-                    top=True, right=True)
-    ax1.tick_params(axis='both', which='major', direction='inout',
-                    labelsize=18, width=3, top=True, right=True, length=7)
+                    labelsize=18, width=3, top=True, right=True, length=10)
     ax1.tick_params(axis='both', which='minor', direction='in', width=2.5,
                    top=True, right=True, length=3)
 
@@ -160,6 +160,10 @@ def plot(*args, **kwargs):
     n = 0
     l = 0
     for arg in args:
+        if len(arg) == 4:
+            ax1.errorbar(arg[0], arg[1], xerr=arg[2], yerr=arg[3],
+                         marker=marker[n%len(marker)], linestyle='None',
+                         capsize=4, capthick=1.5, color=color[n%len(color)])
         if len(arg) == 3:
             if n >= len(dataLabel):
                 ax1.errorbar(arg[0], arg[1], yerr=arg[2],
@@ -167,7 +171,7 @@ def plot(*args, **kwargs):
                              capsize=4, capthick=1.5, color=color[n%len(color)])
             else:
                 ax1.errorbar(arg[0], arg[1], yerr=arg[2],
-                             marker=marker[n%len(marker)], linestyle='None',
+                             marker=marker[n%len(marker)], linestyle='-',
                              capsize=4, capthick=1.5, label=dataLabel[n],
                              color=color[n%len(color)])
         elif includeLines:
