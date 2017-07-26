@@ -305,49 +305,6 @@ def simple_peak_counts(channels, counts, peak, width=25):
         return (0, 0)
 
 #------------------------------------------------------------------------------#
-def ge_bincounts(x, p1, p2, p3, p4, p5, p6, p7, p8, p9):
-    """!
-    @ingroup Counting
-    Calculate the total number of counts at a specified bin location given the
-    peak fitting parameters.
-
-    "Analaytic Peak Fitting for Gamma-Ray Spectrum Analysis with Ge Detectors"
-    by L.C. Longoria
-
-    This formulation dropped the upper exponential and added a quadratic term
-    to the background.
-
-    @param x: <em> scalar float/integer </em> \n
-        Channel number \n
-    @param p1: \e float \n
-        Gaussian amplitude \n
-    @param p2: \e float \n
-        Gaussian centroid \n
-    @param p3: \e float \n
-        Gaussian width \n
-    @param p4: \e float \n
-        Skew Gaussian amplitude  \n
-    @param p5: \e float \n
-        Skew Gaussian range \n
-    @param p6: \e float \n
-        Smeared step amplitude \n
-    @param p7: \e float \n
-        Background quadratic term \n
-    @param p8: \e float \n
-        Background linear term \n
-    @param p9: \e float \n
-        Background offset \n
-
-    @return \e float: The number of counts in the specified bin
-    line \n
-    """
-    f1 = gauss(x, p1, p2, p3)
-    f2 = smeared_step(x, p2, p3, p6)
-    f3 = skew_gauss(x, p2, p3, p4, p5)
-    f5 = quadratic(x, p7, p8, p9)
-    return f1+f2+f3+f5
-
-#------------------------------------------------------------------------------#
 def ge_binCounts(x, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11,
                  useUpper=False, quadBackground=False, peakOnly=False,
                  backgroundOnly=False):
