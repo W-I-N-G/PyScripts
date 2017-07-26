@@ -14,6 +14,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 from matplotlib import rc,rcParams
+import matplotlib.lines as mlines
 
 from DataAnalysis.Stats import red_chisq
 
@@ -51,10 +52,18 @@ def plot(*args, **kwargs):
         legend. \n
     @param legend: <em> kwargs string </em> \n
         An optional specification to include or not include a legend. \n
+    @param dualHandles: <em> kwargs boolean </em> \n
+        Specifies the whether to collapse the handles from two separate data
+        sets into one. For example, this is useful when plotting histograms
+        where one wants to add markers at the midpoint values. \n
     @param legendLoc: <em> kwargs int </em> \n
         Specifies the legend location. \n
     @param savePath: <em> kwargs string </em> \n
         An optional specification for the save location. \n
+    @param saveFormat: <em> kwargs format </em> \n
+        An optional specification for the save format. \n
+    @param saveDPI: <em> kwargs integer </em> \n
+        An optional specification for the save resolution. \n
     @param xMin: <em> kwargs integer or float </em> \n
         An optional specification for the minimum X axis value. \n
     @param xMax: <em> kwargs integer or float </em> \n
@@ -96,8 +105,11 @@ def plot(*args, **kwargs):
     dataLabel = kwargs.pop('dataLabel', ['Data Set \#{}'.format(i) \
                                          for i in range(0, len(args))])
     legend = kwargs.pop('legend', True)
+    dualHandles = kwargs.pop('dualHandles', False)
     legendLoc = kwargs.pop('legendLoc', 1)
     savePath = kwargs.pop('savePath', '')
+    saveFormat = kwargs.pop('saveFormat', 'png')
+    saveDPI = kwargs.pop('saveDPI', 1000)
     xMin = kwargs.pop('xMin', min(min(a[0]) for a in args)*0.75)
     xMax = kwargs.pop('xMax', max(max(a[0]) for a in args)*1.25)
     yMin = kwargs.pop('yMin', min(min(a[1]) for a in args)*0.5)
@@ -119,7 +131,7 @@ def plot(*args, **kwargs):
 
     # Allow use of Tex sybols
     plt.rc('text', usetex=True)
-    #plt.rc('axes', linewidth=2)
+    plt.rc('axes', linewidth=1.5)
     plt.rc('font', weight='bold')
     rcParams['text.latex.preamble'] = [r'\boldmath']
 
@@ -158,45 +170,71 @@ def plot(*args, **kwargs):
 
     # Add datasets to plot
     n = 0
-    l = 0
+    m = 0
     for arg in args:
         if len(arg) == 4:
             ax1.errorbar(arg[0], arg[1], xerr=arg[2], yerr=arg[3],
                          marker=marker[n%len(marker)], linestyle='None',
                          capsize=4, capthick=1.5, color=color[n%len(color)])
-        if len(arg) == 3:
+        elif len(arg) == 3:
             if n >= len(dataLabel):
                 ax1.errorbar(arg[0], arg[1], yerr=arg[2],
                              marker=marker[n%len(marker)], linestyle='None',
                              capsize=4, capthick=1.5, color=color[n%len(color)])
             else:
-                ax1.errorbar(arg[0], arg[1], yerr=arg[2],
-                             marker=marker[n%len(marker)], linestyle='-',
-                             capsize=4, capthick=1.5, label=dataLabel[n],
+                ax1.errorbar(arg[0], arg[1], yerr=arg[2], 
+                             marker=marker[n%len(marker)],  capsize=4, 
+                             capthick=1.5, label=dataLabel[n],
                              color=color[n%len(color)])
         elif includeLines:
-            ax1.plot(arg[0], arg[1], linewidth=linewidth[l//len(linestyle)],
-                     color=color[n%len(color)],
-                     linestyle=linestyle[l%len(linestyle)],
-                     dashes=dashes[l%len(dashes)], marker=marker[n%len(marker)],
-                     label=dataLabel[n])
-            l += 1
+            if n >= len(dataLabel):
+                ax1.plot(arg[0], arg[1], linewidth=linewidth[n//len(linestyle)],
+                         color=color[n%len(color)],
+                         linestyle=linestyle[n%len(linestyle)],
+                         dashes=dashes[n%len(dashes)], marker=marker[n%len(marker)])
+            else:
+                ax1.plot(arg[0], arg[1], linewidth=linewidth[n//len(linestyle)],
+                         color=color[n%len(color)],
+                         linestyle=linestyle[n%len(linestyle)],
+                         dashes=dashes[n%len(dashes)], marker=marker[n%len(marker)],
+                         label=dataLabel[n])
         else:
-            ax1.plot(arg[0], arg[1], linewidth=linewidth[n//len(linestyle)],
-                     color=color[n%len(color)], linestyle='None',
-                     marker=marker[n%len(marker)], label=dataLabel[n])
+            if n >= len(dataLabel):
+                ax1.plot(arg[0], arg[1],marker=marker[n%len(marker)],
+                         linestyle='None', color=color[n%len(color)])
+            else:
+                ax1.plot(arg[0], arg[1], linewidth=linewidth[n//len(linestyle)],
+                         color=color[n%len(color)],
+                         linestyle=linestyle[n%len(linestyle)],
+                         marker=None, label=dataLabel[n])
         n += 1
 
     # Add and locate legend
-    if legend == True:
-        plt.legend(borderaxespad=0.75, loc=legendLoc, fontsize=16,
-                   handlelength=5, borderpad=0.5, labelspacing=0.75,
-                   fancybox=True, framealpha=0.5, numpoints=1)
+    if legend:
+        if dualHandles:
+                lines = []
+                for i in range(0, len(args)/2):
+                    lines.append(mlines.Line2D([], [], color=color[i],
+                                               label=dataLabel[i],
+                                               marker=marker[i+len(args)/2]))
+                plt.legend(handles=lines,
+                           borderaxespad=0.75, loc=legendLoc, fontsize=16,
+                           handlelength=5, borderpad=0.5, labelspacing=0.75,
+                           fancybox=True, framealpha=0.5, numpoints=1)
+        else:
+            plt.legend(borderaxespad=0.75, loc=legendLoc, fontsize=16,
+                       handlelength=5, borderpad=0.5, labelspacing=0.75,
+                       fancybox=True, framealpha=0.5, numpoints=1)
+            
 
     plt.show()
 
     if savePath != '':
-        fig.savefig(savePath, bbox_inches='tight')
+        if saveFormat == 'png':
+            fig.savefig(savePath, bbox_inches='tight', dpi=saveDPI)
+        else:
+            fig.savefig(savePath, bbox_inches='tight', format=saveFormat,
+                        dpi=saveDPI)
 
 #------------------------------------------------------------------------------#
 def comp_plot(x, dataY, dataUncert, modelY, includeChi2=True,

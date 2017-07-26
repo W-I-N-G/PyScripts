@@ -158,7 +158,7 @@ class Histogram(object):
             self.data.append(data[i-1])
             self.xEdges.append(edges[i])
             self.data.append(data[i-1])
-            self.midPtX.append((edges[i-1]+edges[i])/2)
+            self.midPtX.append((edges[i-1]+edges[i])/2.)
             self.midPtData.append(data[i-1])
 
     def plot(self, *args, **kwargs):
@@ -173,6 +173,9 @@ class Histogram(object):
             An optional list of additional plot MatPlotLib plot options.
             The supported options are listed in the plot function from
             the Support.Plotting module. \n
+        @param addMidPts: <em> kwargs boolean </em> \n
+            Specifies the whether to add the midpoints, even if uncertainty
+            data is not available. \n
         """
 
         # Set defaults if not specified since 2.7 sucks
@@ -180,6 +183,7 @@ class Histogram(object):
         xMax = kwargs.pop('xMax', max(self.xEdges)+1)
         yMin = kwargs.pop('yMin', 0.5*min(y for y in self.data if y > 0))
         yMax = kwargs.pop('yMax', 1.5*max(self.data))
+        addMidPts = kwargs.pop('addMidPts', False)
 
         # Organize plot data
         data = []
@@ -191,9 +195,13 @@ class Histogram(object):
             label.append(arg.label)
         if self.sigma != None:
             data.append([self.midPtX, self.midPtData, self.sigma])
+        elif addMidPts:
+            data.append([self.midPtX, self.midPtData])
         for arg in args:
             if arg.sigma != None:
                 data.append([arg.midPtX, arg.midPtData, arg.sigma])
+            elif addMidPts:
+                data.append([arg.midPtX, arg.midPtData, [0]*len(arg.midPtData)])
 
         plot(*data, dataLabel=label, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax,
              **kwargs)
