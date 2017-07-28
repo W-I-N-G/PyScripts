@@ -8,7 +8,7 @@
 
 @author James Bevins
 
-@date 11July17
+@date 27July17
 """
 
 import os
@@ -181,6 +181,7 @@ def batchmaker(path, inputSuffix="i", version="mcnp6", tasks=1,
                                       format(version, filename,
                                              '.'.join(splitFile[0:-1]),
                                              tasks))
+                        inpFile.write('del runt* \n')
                     else:
                         print 'Skipping file: {}'.format(filename)
             else:

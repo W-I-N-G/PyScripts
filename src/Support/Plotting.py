@@ -119,7 +119,6 @@ def plot(*args, **kwargs):
     xMinorTicks = kwargs.pop('xMinorTicks', 0)
     yMinorTicks = kwargs.pop('yMinorTicks', 0)
     color = kwargs.pop('color', ['k', 'k', 'k', 'k', 'k', 'k'])
-    linestyle = kwargs.pop('linestyle', ['-', ':', '-.', '--', '-', '-'])
     linewidth = kwargs.pop('linewidth', [2, 4])
     dashes = kwargs.pop('dashes', [[10, 0.001], [2, 2, 2, 2], [10, 5, 2, 5],
                                    [10, 5, 10, 5], [10, 2, 2, 2, 2, 2],
@@ -128,6 +127,10 @@ def plot(*args, **kwargs):
         marker = kwargs.pop('marker', ['o', '^', '+', 's', 'd', '*', '>'])
     else:
         marker = [None]
+    if includeLines:
+        linestyle = kwargs.pop('linestyle', ['-', ':', '-.', '--', '-', '-'])
+    else:
+        linestyle = ['None']
 
     # Allow use of Tex sybols
     plt.rc('text', usetex=True)
@@ -182,7 +185,7 @@ def plot(*args, **kwargs):
                              marker=marker[n%len(marker)], linestyle='None',
                              capsize=4, capthick=1.5, color=color[n%len(color)])
             else:
-                ax1.errorbar(arg[0], arg[1], yerr=arg[2], 
+                ax1.errorbar(arg[0], arg[1], yerr=arg[2], linestyle='None',
                              marker=marker[n%len(marker)],  capsize=4, 
                              capthick=1.5, label=dataLabel[n],
                              color=color[n%len(color)])
@@ -200,13 +203,15 @@ def plot(*args, **kwargs):
                          label=dataLabel[n])
         else:
             if n >= len(dataLabel):
-                ax1.plot(arg[0], arg[1],marker=marker[n%len(marker)],
+                ax1.plot(arg[0], arg[1], marker=marker[n%len(marker)],
                          linestyle='None', color=color[n%len(color)])
             else:
                 ax1.plot(arg[0], arg[1], linewidth=linewidth[n//len(linestyle)],
                          color=color[n%len(color)],
-                         linestyle=linestyle[n%len(linestyle)],
-                         marker=None, label=dataLabel[n])
+                         #linestyle=linestyle[n%len(linestyle)],
+                         #marker=None, 
+                         linestyle=linestyle[n%len(linestyle)], marker=marker[n%len(marker)],
+                         label=dataLabel[n])
         n += 1
 
     # Add and locate legend
