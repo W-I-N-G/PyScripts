@@ -477,7 +477,7 @@ def ge_peakfit(channels, counts, countStd=[], peakWidth=20, plotComp=False,
         comp_plot(channels, counts, countStd, modelCounts, includeChi2=True,
                   freeParams=11, dataLabel=['measured', 'fit'],
                   xLabel='Channel', yLabel='Counts', xMin=min(channels),
-                  xMax=max(channels), logY=False, yMin=1,
+                  xMax=max(channels), logY=True, yMin=1,
                   title='{}: {:.0f} counts '.format(plotTitle,
                                                    sum(peakCounts),
                                                    sqrt(sum(peakCounts))))
