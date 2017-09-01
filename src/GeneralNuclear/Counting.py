@@ -306,7 +306,7 @@ def simple_peak_counts(channels, counts, peak, width=25):
 
 #------------------------------------------------------------------------------#
 def ge_binCounts(x, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11,
-                 useUpper=False, quadBackground=False, peakOnly=False,
+                 useUpper=False, quadBackground=True, peakOnly=True,
                  backgroundOnly=False):
     """!
     @ingroup Counting
@@ -480,7 +480,7 @@ def ge_peakfit(channels, counts, countStd=[], peakWidth=20, plotComp=False,
                                                    sum(modelCounts),
                                                    sqrt(sum(modelCounts))))
 
-    return sum(modelCounts), sqrt(sum(modelCounts)), redChiSq
+    return sum(modelCounts), sqrt(sum(peakCounts)), redChiSq
 
 #------------------------------------------------------------------------------#
 def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20,
