@@ -306,7 +306,7 @@ def simple_peak_counts(channels, counts, peak, width=25):
 
 #------------------------------------------------------------------------------#
 def ge_binCounts(x, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11,
-                 useUpper=False, quadBackground=True, peakOnly=True,
+                 useUpper=False, quadBackground=False, peakOnly=False,
                  backgroundOnly=False):
     """!
     @ingroup Counting
@@ -466,8 +466,10 @@ def ge_peakfit(channels, counts, countStd=[], peakWidth=20, plotComp=False,
 
     # Get the bin by bin model data and perform chi squared test
     modelCounts = []
+    peakCounts = []
     for ch in channels:
         modelCounts.append(ge_binCounts(ch, *popt))
+        peakCounts.append(ge_binCounts(ch, *popt, peakOnly=True))
     redChiSq = red_chisq(counts, modelCounts, countStd, freeParams=11)
 
     # Plot and pause for review
@@ -475,12 +477,12 @@ def ge_peakfit(channels, counts, countStd=[], peakWidth=20, plotComp=False,
         comp_plot(channels, counts, countStd, modelCounts, includeChi2=True,
                   freeParams=11, dataLabel=['measured', 'fit'],
                   xLabel='Channel', yLabel='Counts', xMin=min(channels),
-                  xMax=max(channels), logY=True, yMin=1,
+                  xMax=max(channels), logY=False, yMin=1,
                   title='{}: {:.0f} counts '.format(plotTitle,
-                                                   sum(modelCounts),
-                                                   sqrt(sum(modelCounts))))
+                                                   sum(peakCounts),
+                                                   sqrt(sum(peakCounts))))
 
-    return sum(modelCounts), sqrt(sum(peakCounts)), redChiSq
+    return sum(peakCounts), sqrt(sum(peakCounts)), redChiSq
 
 #------------------------------------------------------------------------------#
 def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20,
@@ -536,6 +538,7 @@ def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20,
             if (ch[i] - maxWindow) < (ch[i-1] + peakWidth):
                 windows[ch[i]][0] = ch[i] - \
                                       max(ch[i]-peakWidth-ch[i-1], minWindow)
+
             else:
                 windows[ch[i]][0] = ch[i] - maxWindow
             if i != 0 and i != len(ch)-1 \
