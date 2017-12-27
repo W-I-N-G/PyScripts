@@ -14,12 +14,12 @@ import numpy as np
 
 from datetime import datetime
 
-from Counting import volume_solid_angle, germanium_eff, germanium_eff_exp, \
-                     parse_spe, simple_peak_counts, foil_count_time, \
+from GeneralNuclear.Counting import volume_solid_angle, germanium_eff, \
+                     germanium_eff_exp, parse_spe, simple_peak_counts, \
                      optimal_count_plan, germanium_eff_poly, get_peak_windows, \
-                     ge_bincounts, ge_peakcounts, ge_peakfit
-from BasicNuclearCalcs import fractional_solid_angle, production_decay, \
-                              get_decay_const
+                     foil_count_time, ge_bincounts, ge_peakcounts, ge_peakfit
+from GeneralNuclear.BasicNuclearCalcs import fractional_solid_angle, \
+                              production_decay, get_decay_const
 
 import nose
 from nose.plugins.skip import SkipTest

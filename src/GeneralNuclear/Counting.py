@@ -466,8 +466,10 @@ def ge_peakfit(channels, counts, countStd=[], peakWidth=20, plotComp=False,
 
     # Get the bin by bin model data and perform chi squared test
     modelCounts = []
+    peakCounts = []
     for ch in channels:
         modelCounts.append(ge_binCounts(ch, *popt))
+        peakCounts.append(ge_binCounts(ch, *popt, peakOnly=True))
     redChiSq = red_chisq(counts, modelCounts, countStd, freeParams=11)
 
     # Plot and pause for review
@@ -477,8 +479,8 @@ def ge_peakfit(channels, counts, countStd=[], peakWidth=20, plotComp=False,
                   xLabel='Channel', yLabel='Counts', xMin=min(channels),
                   xMax=max(channels), logY=True, yMin=1,
                   title='{}: {:.0f} counts '.format(plotTitle,
-                                                   sum(modelCounts),
-                                                   sqrt(sum(modelCounts))))
+                                                   sum(peakCounts),
+                                                   sqrt(sum(peakCounts))))
 
     return sum(modelCounts), sqrt(sum(modelCounts)), redChiSq
 

@@ -8,7 +8,7 @@
 
 @author James Bevins
 
-@date 7Mar17
+@date 20Sep17
 """
 
 import os
@@ -27,7 +27,7 @@ def pause():
         input("Press enter to continue")
     except SyntaxError:
         pass
-    
+
 #------------------------------------------------------------------------------#
 def removeFile(fileName):
     """!
@@ -44,3 +44,52 @@ def removeFile(fileName):
         os.remove(fileName)
     except OSError:
         print "WARNING: {} not found and cannot be deleted.".format(fileName)
+
+#------------------------------------------------------------------------------#
+class PDF(object):
+    """!
+    @ingroup Utilities
+    Method to display PDF files imbedded into Jupyter notebooks.
+    """
+    def __init__(self, pdf, size=(200,200)):
+        """!
+        Constructor to build the PDF class.
+
+        @param self: <em> object pointer </em> \n
+            The object pointer. \n
+        @param pdf: \e string \n
+            The path to the pdf file to be displayed. In a multi-page pdf,
+            the image on the second page can be displayed by using '<path>[1]'
+            and so forth for other pages in the document. \n
+        @param self: <em> tuple of integers </em> \n
+            The integer value of the number of pixels to display for the
+            image. \n
+        """
+        ## @var pdf: \e string
+        # A path for the pdf image location.
+        self.pdf = pdf
+
+        ## @var size: \e string
+        # The integer value of the number of pixels to display for the
+        # image.
+        self.size = size
+
+    def _repr_html_(self):
+        """!
+        PDF HTML print function.
+
+        @param self: <em> PDF pointer </em> \n
+            The PDF pointer. \n
+        """
+        return '<iframe src={0} width={1[0]} height={1[1]}></iframe>'.format(
+                                                         self.pdf, self.size)
+
+    def _repr_latex_(self):
+        """!
+        PDF Latex print function.
+
+        @param self: <em> PDF pointer </em> \n
+            The PDF pointer. \n
+        """
+        return r'\includegraphics[width=1.0\textwidth]{{{0}}}'.format(
+                                                         self.pdf)

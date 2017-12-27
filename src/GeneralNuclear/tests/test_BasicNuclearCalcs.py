@@ -4,7 +4,7 @@
 #
 # @date 13Feb17
 
-from BasicNuclearCalcs import *
+from GeneralNuclear.BasicNuclearCalcs import *
 
 from nose.tools import assert_equal, assert_not_equal, assert_raises, raises, \
     assert_almost_equal, assert_true, assert_false, assert_in

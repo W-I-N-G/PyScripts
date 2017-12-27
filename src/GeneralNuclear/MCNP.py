@@ -54,6 +54,8 @@ def read_tally(path, tallyNum, readGroups=True, splitTally=False):
     # Convert tallyNum type
     if type(tallyNum) == int or type(tallyNum) == float:
         tallyNum = str(tallyNum)
+    elif type(tallyNum) == str:
+        pass
     else:
         print "ERROR: tallyNum type unknown."
         return
@@ -68,9 +70,9 @@ def read_tally(path, tallyNum, readGroups=True, splitTally=False):
         df = pd.DataFrame(columns=colNames)
 
     # Determine number of header lines for tally
-    if tallyNum[-1] == 1:
+    if tallyNum[-1] == '1':
         headerLines = 6
-    if tallyNum[-1] == 4:
+    if tallyNum[-1] == '4':
         headerLines = 10
     if tallyNum[-1] == '8':
         headerLines = 6
