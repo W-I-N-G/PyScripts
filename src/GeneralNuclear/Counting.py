@@ -482,7 +482,7 @@ def ge_peakfit(channels, counts, countStd=[], peakWidth=20, plotComp=False,
                                                    sum(peakCounts),
                                                    sqrt(sum(peakCounts))))
 
-    return sum(modelCounts), sqrt(sum(modelCounts)), redChiSq
+    return sum(peakCounts), sqrt(sum(peakCounts)), redChiSq
 
 #------------------------------------------------------------------------------#
 def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20,
@@ -538,6 +538,7 @@ def get_peak_windows(ch, maxWindow=100, peakWidth=15, minWindow=20,
             if (ch[i] - maxWindow) < (ch[i-1] + peakWidth):
                 windows[ch[i]][0] = ch[i] - \
                                       max(ch[i]-peakWidth-ch[i-1], minWindow)
+
             else:
                 windows[ch[i]][0] = ch[i] - maxWindow
             if i != 0 and i != len(ch)-1 \
