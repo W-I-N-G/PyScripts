@@ -12,6 +12,7 @@
 """
 
 import os
+import os.path
 
 #------------------------------------------------------------------------------#
 def pause():
@@ -93,3 +94,18 @@ class PDF(object):
         """
         return r'\includegraphics[width=1.0\textwidth]{{{0}}}'.format(
                                                          self.pdf)
+#------------------------------------------------------------------------------#
+def checkPath(path):
+    """!
+    @ingroup Utilities
+    Test for files existance. Prints the results of the test to the screen.
+
+    @param path: \e string \n
+        The path to the file. \n
+
+    @return none
+    """
+    if os.path.isfile(path): 
+        print 'The file exists at: {}'.format(path)
+    else:
+        print 'ERROR: The file DOES NOT exist at: {}'.format(path)
