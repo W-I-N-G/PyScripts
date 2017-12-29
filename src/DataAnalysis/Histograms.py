@@ -256,7 +256,72 @@ class Histogram(object):
 
         # Test that the file closed
         assert inpFile.closed == True, "File did not close properly."
+        
+    def diff(self, hist):
+        """!
+        Diffs two histograms and returns the absolute value.
 
+        This method assumes that the values to be differed are alligned at
+        the start of the array and adjusts the length of the passed in hist
+        if needed.
+
+        @param self: <em> histogram pointer </em> \n
+            The histogram pointer. \n
+        @param hist: <em> histogram object </em> \n
+            A second histogram to compare. \n
+
+        @return <em> Histogram object: </em> The difference histogram \n
+        """
+
+        histDiff = Histogram()
+        histDiff.xEdges = self.xEdges
+        histDiff.label = 'Difference between '+self.label+' and '+hist.label
+        if self.sigma != None:
+            histDiff.sigma = np.sqrt(np.asarray(self.sigma)**2\
+                                   +np.asarray(hist.sigma[:len(self.sigma)])**2)
+        histDiff.data = np.abs(np.asarray(self.data)\
+                               -np.asarray(hist.data[:len(self.data)]))
+        histDiff.midPtX = self.midPtX
+        histDiff.midPtData = np.abs(np.asarray(self.midPtData)\
+                              -np.asarray(hist.midPtData[:len(self.midPtData)]))
+        
+        return histDiff
+        
+    def relDiff(self, hist):
+        """!
+        Diffs two histograms and returns the relative difference.
+
+        This method assumes that the values to be differed are alligned at
+        the start of the array and adjusts the length of the passed in hist
+        if needed.
+
+        @param self: <em> histogram pointer </em> \n
+            The histogram pointer. \n
+        @param hist: <em> histogram object </em> \n
+            A second histogram to compare. \n
+
+        @return <em> Histogram object: </em> The difference histogram \n
+        """
+
+        histDiff = Histogram()
+        histDiff.xEdges = self.xEdges
+        histDiff.label = 'Difference between '+self.label+' and '+hist.label
+        histDiff.data = np.abs(np.asarray(self.data)\
+                               -np.asarray(hist.data[:len(self.data)]))\
+                               /np.asarray(self.data) * 100.
+        histDiff.midPtX = self.midPtX
+        histDiff.midPtData = np.abs(np.asarray(self.midPtData)\
+                             -np.asarray(hist.midPtData[:len(self.midPtData)]))\
+                             /np.asarray(self.midPtData) * 100.
+        if self.sigma != None:
+            histDiff.sigma = np.sqrt((np.asarray(self.sigma)\
+                                      /np.asarray(self.midPtData))**2\
+                                     +(np.asarray(hist.sigma[:len(self.sigma)])\
+                             /np.asarray(hist.midPtData[:len(self.sigma)]))**2)\
+                                     * histDiff.midPtData
+
+        return histDiff
+            
 #------------------------------------------------------------------------------#
 class Histogram2D(Histogram):
     """!
