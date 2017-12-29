@@ -145,147 +145,62 @@ def bcmToBCF(bcmPath, outPath='flux_history.dat', timeOut='cumulative', measOut=
     # Print output
     print 'The total measurment time was {} seconds with an integrated ' \
           'measurement of {}.'.format(totTime, totMeas)
-#------------------------------------------------------------------------------#
-def readFlu(path, **kwargs):
-    """!
-    @ingroup HEPROW
-    Reads in a HEPROW .fru output file and returns a pandas data frame
-    containing the low bin edges, the absolute flux data, and uncertainty.
-    This does not read the correlation coefficient matrix.
-
-    @param path: \e string \n
-        Absolute path to the file \n
-    @param kwargs: \n
-        Keyword arguments for pandas.read_table() \n
-
-    @return <em> pandas data frame </em>: A data frame containing the lower
-        bin edges, the absolute flux, and its uncertainty \n
-    """
-
-    df = pd.read_table(path, **kwargs)
-
-    return df.apply(pd.to_numeric)
 
 #------------------------------------------------------------------------------#
-def readMTX(path):
-    """!
-    @ingroup HEPROW
-    Reads in a HEPROW .MTX covariance output file and returns a the sqrt of the
-    diagonal times the inverse survival function of the \f$\chi^2\f$
-    distribution.
+def stayslFlux(df, fluxName='tally', uncertName='uncertainty',
+               maxBinAdjust=0, adjFlux=0.0, adjUncert=0.0):
+    """
+    @ingroup STAYSL
+    Converts a tally dataframe to the STAYSL input format to generate the flux
+    and flux uncertainy inputs. The results are printed to the screen.
 
-    @param path: \e string \n
-        Absolute path to the file \n
+    There are optional parameters to allow for bin adjustments below a specified
+    bin if the simulation records a tally of 0.  This is becuase STAYSL will
+    not adjust the bin if a zero flux is recorded in the bin.  This can be
+    necessary for difficult simulations or where the low-energy portion of the
+    spectrum is not well known. This should be used with EXTREME CAUTION.
 
-    @return <em> array of floats </em>: An array containing the standard
-    deviations \n
+    Parameters
+    ==========
+    @param df: <em> pandas dataframe </em> \n
+        Absolute path to the input BCM file. \n
+    @param fluxName: \e string \n
+        Column header for flux in the supplied dataframe. \n
+    @param uncertName: \e string \n
+        Column header for flux uncertainty in the supplied dataframe. \n
+    @param maxBinAdjust: \e integer \n
+        The highest bin number to adjust. \n
+    @param adjFlux: \e float \n
+        The flux to use for bins with zero flux if below maxBinAdjust. \n
+    @param adjUncert: \e float \n
+        The uncertainty to use for bins with zero flux if below
+        maxBinAdjust. \n
     """
 
-    data = []
+    # Output the flux
+    out = ' '
+    bin = 0
+    print "The flux:"
+    for f in df[fluxName]:
+        if f == 0 and bin < maxBinAdjust:
+            f = adjFlux
+        out += '{:.4e} '.format(f)
+        if len(out)%78==0:
+            print out
+            out = ' '
+        bin += 1
+    print out
 
-    # Open file
-    try:
-        f = open(path, 'r')
-        # Read header lines
-        bins = int(f.next().split()[0])
-
-        # Read the file line by line and store the values
-        tmp = []
-        for line in f:
-            if len(tmp) < bins:
-                tmp.extend(line.split())
-                if len(tmp) == bins:
-                    data.append(tmp)
-                    tmp = []
-            else:
-                print 'ERROR: MTX read error. Covariance length !=  # bins.'
-
-        # Close the file
-        f.close()
-    except IOError as e:
-        print "I/O error({0}): {1}".format(e.errno, e.strerror)
-
-    # Determine the standard deviation
-    data = np.sqrt(np.diag(np.asarray(data).astype(float)))
-
-    return data
-
-#------------------------------------------------------------------------------#
-def readRSP(path, minE=None, maxE=None, minPH=None, maxPH=None):
-    """!
-    @ingroup HEPROW
-    Reads in a HEPROW .rsp response matrix file and returns an array
-    representing the response matrix.
-
-    @param path: \e string \n
-        Absolute path to the file \n
-    @param minE: <em> integer or float </em> \n
-        Optional specifier for the minimum energy to read. \n
-    @param maxE: <em> integer or float </em> \n
-        Optional specifier for the maximum energy to read. \n
-    @param minPH: <em> integer or float </em> \n
-        Optional specifier for the minimum pulse height to read. \n
-    @param maxPH: <em> integer or float </em> \n
-        Optional specifier for the maximum pulse height to read. \n
-
-    @return <em> array of floats </em>: An array containing the standard
-    deviations \n
-    """
-
-    # Initialize Variables
-    data = []
-    eBins = []
-    if minE == None:
-        minE = 0
-    if maxE == None:
-        maxE = 1000
-
-    # Open file
-    try:
-        f = open(path, 'r')
-        # Skip the first header
-        line = f.next()
-        phScale = float(line.rstrip().split()[0])
-        line = f.next()
-        curE = float(line.rstrip().split()[0])
-        numPHBins = float(line.rstrip().split()[1])
-        phLowBound = float(line.rstrip().split()[2])
-        if minPH == None:
-            minPH = phLowBound
-        phUpBound = float(line.rstrip().split()[3])
-        if maxPH == None:
-            maxPH = phUpBound
-        count = 1
-
-        # Read the file line by line and store the values
-        tmp = []
-        for line in f:
-            splitList = line.rstrip().split()
-            if len(splitList) == 4 and float(splitList[3]) == phUpBound:
-                curE = float(line.rstrip().split()[0])
-                if tmp != []:
-                    data.append(tmp)
-                    tmp = []
-                count = 1
-            elif curE >= minE and curE <= maxE:
-                if curE not in eBins:
-                    eBins.append(curE)
-                for item in splitList:
-                    if count*phScale >= minPH and count*phScale <= maxPH:
-                        tmp.append(float(item))
-                    count += 1
-
-        # Append last data set
-        data.append(tmp)
-
-        # Close the file
-        f.close()
-    except IOError as e:
-        print "I/O error({0}): {1}".format(e.errno, e.strerror)
-
-    for row in data:
-        while len(row) < len(data[-1]):
-            row.append(0.0)
-
-    return np.transpose(np.asarray(data)), eBins, \
-           np.linspace(phScale, phUpBound, numPHBins)
+    # Output the uncertainty
+    out = ' '
+    bin = 0
+    print "The Uncertainty:"
+    for f in df[uncertName]:
+        if f == 0 and bin < maxBinAdjust:
+            f = adjUncert
+        out += '{:.4e} '.format(f)
+        if len(out)%78==0:
+            print out
+            out = ' '
+        bin += 1
+    print out
