@@ -204,3 +204,84 @@ def stayslFlux(df, fluxName='tally', uncertName='uncertainty',
             out = ' '
         bin += 1
     print out
+
+#------------------------------------------------------------------------------#
+class IterativeSTAYSL(object):
+    """!
+    @ingroup STAYSL
+    This class creates an object used to perform an iterative STAYSL solution.
+    The user can specify the convergence criteria, how to handle the solution
+    uncertainty, and the convergence tolerance.
+    """
+
+    ##
+    def __init__(self, path, chiConv=0.1, stdConv=0.1, updateStd=False,
+                 **kwargs):
+        """!
+        Constructor to build the IterativeSTYASL class.
+
+        @param self: <em> object pointer </em> \n
+            The object pointer. \n
+        @param path: \e string \n
+            The path to the base directory containing all of the STAYSL_PNNL
+            run files. \n
+        @param chiConv: \e integer \n
+            The convergence criteria for the $\chi^2$ value. \n
+        @param stdConv: \e integer \n
+            The convergence criteria for the flux uncertainty. These are
+            calculated according to the 2-norm by default, but this can
+            be changed using the kwargs. \n
+        @param updateStd: \e boolean \n
+            Optional specified to update the flux uncertainty with each
+            iteration.  If False, the flux uncertainty will not update until
+            after the $\chi^2$ convergence criteria has been met.  The
+            iteration will then proceed until the flux is converged.  \n
+        @param kwargs: <em> optional inputs </em> \n
+            An optional list of additional inputs to specify optional inputs
+            used by np.linalg.norm(). \n
+        """
+
+        ## @var path: \e string
+        # The path to the base directory containing all of the STAYSL_PNNL
+        # run files.
+        self.path = path
+        ## @var chiConv: \e integer
+        # The convergence criteria for the $\chi^2$ value.
+        self.chiConv = chiConv
+        ## @var stdConv: \e integer 
+        # The convergence criteria for the flux uncertainty.
+        self.stdConv = stdConv
+        ## updateStd: \e boolean 
+        # Optional specified to update the flux uncertainty with each
+        # iteration.  
+        self.updateStd = updateStd
+        
+        self.norm = kwargs.pop('norm', 2)
+
+    def __repr__(self):
+        """!
+        IterativeSTYASL print function.
+
+        @param self: <em> IterativeSTYASL pointer </em> \n
+            The IterativeSTYASL pointer. \n
+        """
+        return "IterativeSTYASL({}, {}, {}, {})".format(self.path,
+                                                        self.chiConv,
+                                                        self.stdConv,
+                                                        self.updateStd)
+
+    def __str__(self):
+        """!
+        Human readable IterativeSTYASL print function.
+
+        @param self: <em> IterativeSTYASL pointer </em> \n
+            The IterativeSTYASL pointer. \n
+        """
+
+        header = ["\IterativeSTYASL:"]
+        header += ["STAYSL Path: {}".format(self.path)]
+        header += ["$\chi^2$ Convergence: {}".format(self.chiConv)]
+        header += ["Flux Std  Convergence: {}".format(self.stdConv)]
+        header += ["Update Flux Std Each Iteration: {}".format(self.updateStd)]
+        header = "\n".join(header)+"\n"
+        return header
