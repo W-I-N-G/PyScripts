@@ -202,3 +202,51 @@ def batchmaker(path, inputSuffix="i", version="mcnp6", tasks=1,
 
     # Test that the file closed
     assert inpFile.closed == True, 'File did not close properly.'
+
+#------------------------------------------------------------------------------#
+def listToMCNPTable(data, columns=6, leadingStr='    ', skip=1):
+    """
+    @ingroup MCNP
+    Converts a list or array of data to an MCNP row entry format.  The use of
+    the leading spaces optional input allows for this function to be used for
+    alternative codes (such as STAYSL). The resulting table is printed to the
+    screen for copying into the MCNP input file.
+
+    The optional skip parameter enables the ability to only use every nth
+    value.
+
+    Parameters
+    ==========
+    @param data: <em> list or array </em> \n
+        The data to be converted into a MCNP table. \n
+    @param columns: \e integer \n
+        The number of columns in the table. Note: for MCNP, the user must
+        ensure that the combination of the number of columns, the leadingSpaces,
+        and the format specifier result in a row length of less than 80
+        characters. \n
+    @param leadingStr: \e string \n
+        A string to prepend before each line. \n
+    @param skip: \e integer \n
+        The number of items to skip per value kept. \n
+    """
+
+    # Keep every nth value
+    if skip > 1:
+        print "The starting data length is {}.".format(data)
+        tmpCol = []
+        for i in range(0,len(data)):
+            if i%skip==0:
+                tmpCol.append(data[i])
+        data = tmpCol1    
+        print ("The ending data length is {} after keeping every{}th data "
+               "point.".format(data, skip))  
+
+    # Build Table
+    strData = leadingStr
+    for i in range(0,len(data)):
+        if i%columns==0:
+            strData += '\n' + leadingStr
+        # Enforce monotonically increasing requirement - not currently used
+        if True:#i==0 or data[i]-data[i-1] > data[i]/1E4: 
+            strData += ' {:.4e}'.format(data[i])
+    print strData
