@@ -30,7 +30,7 @@ def pause():
         pass
 
 #------------------------------------------------------------------------------#
-def removeFile(fileName):
+def remove_file(fileName):
     """!
     @ingroup Utilities
     Test for files existance; deletes that file if it exists.
@@ -95,17 +95,23 @@ class PDF(object):
         return r'\includegraphics[width=1.0\textwidth]{{{0}}}'.format(
                                                          self.pdf)
 #------------------------------------------------------------------------------#
-def checkPath(path):
+def check_path(path, printOut=True):
     """!
     @ingroup Utilities
     Test for files existance. Prints the results of the test to the screen.
 
     @param path: \e string \n
         The path to the file. \n
+    @param printOut: \e boolean \n
+        Optional specifier to print out the path to the screen. Can be disabled
+        for automated processes where this would be a nuisance.\n
 
-    @return none
+    @return \e boolean: A boolean corresponding to that path's existance.
     """
     if os.path.isfile(path): 
-        print 'The file exists at: {}'.format(path)
+        if printOut:
+            print 'The file exists at: {}'.format(path)
+        return True
     else:
         print 'ERROR: The file DOES NOT exist at: {}'.format(path)
+        return False
