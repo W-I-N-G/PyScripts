@@ -11,12 +11,25 @@
 @date 27Dec17
 """
 
+import os
+import os.path
+import sys
+
+import numpy as np
+import pandas as pd
 import numpy as np
 
 from datetime import datetime
+from math import ceil
+from subprocess import Popen, PIPE, STDOUT
+
+from Support.Utilities import check_path
+from DataAnalysis.DataManipulation import bin_integration
 
 #------------------------------------------------------------------------------#
-def bcmToBCF(bcmPath, outPath='flux_history.dat', timeOut='cumulative', measOut='differential', measType='flux', title='PyScripts Generated BCF file'):
+def bcmToBCF(bcmPath, outPath='flux_history.dat', timeOut='cumulative',
+             measOut='differential', measType='flux',
+             title='PyScripts Generated BCF file'):
     """
     @ingroup STAYSL
     Converts from a bcm file with the following format 
@@ -204,7 +217,7 @@ def stayslFlux(df, fluxName='tally', uncertName='uncertainty',
             out = ' '
         bin += 1
     print out
-
+    
 #------------------------------------------------------------------------------#
 class IterativeSTAYSL(object):
     """!
@@ -212,11 +225,15 @@ class IterativeSTAYSL(object):
     This class creates an object used to perform an iterative STAYSL solution.
     The user can specify the convergence criteria, how to handle the solution
     uncertainty, and the convergence tolerance.
+
+    The class assumes that all of the STAYSL input files follow the STAYSL
+    default naming convention and that a complete set of input files has been
+    created.
     """
 
     ##
     def __init__(self, path, chiConv=0.1, stdConv=0.1, updateStd=False,
-                 **kwargs):
+                 nGrps = 140, **kwargs):
         """!
         Constructor to build the IterativeSTYASL class.
 
@@ -236,6 +253,8 @@ class IterativeSTAYSL(object):
             iteration.  If False, the flux uncertainty will not update until
             after the $\chi^2$ convergence criteria has been met.  The
             iteration will then proceed until the flux is converged.  \n
+        @param nGrps: \e integer \n
+            The number of energy groups used in the unfold. \n
         @param kwargs: <em> optional inputs </em> \n
             An optional list of additional inputs to specify optional inputs
             used by np.linalg.norm(). \n
@@ -245,6 +264,7 @@ class IterativeSTAYSL(object):
         # The path to the base directory containing all of the STAYSL_PNNL
         # run files.
         self.path = path
+        os.chdir(self.path)
         ## @var chiConv: \e integer
         # The convergence criteria for the $\chi^2$ value.
         self.chiConv = chiConv
@@ -255,8 +275,19 @@ class IterativeSTAYSL(object):
         # Optional specified to update the flux uncertainty with each
         # iteration.  
         self.updateStd = updateStd
+        ## nGrps: \e integer 
+        # The number of energy groups used in the unfold.  
+        self.nGrps = nGrps
         
         self.norm = kwargs.pop('norm', 2)
+
+        # Private attributes
+        self._dataStart = 99
+        self._df = None
+        self._normFactor = 1.
+        self._inpStr = ''
+        self._chi2 = 1E12
+        self._stdNorm = 1E12
 
     def __repr__(self):
         """!
@@ -265,10 +296,11 @@ class IterativeSTAYSL(object):
         @param self: <em> IterativeSTYASL pointer </em> \n
             The IterativeSTYASL pointer. \n
         """
-        return "IterativeSTYASL({}, {}, {}, {})".format(self.path,
+        return "IterativeSTYASL({}, {}, {}, {}, {})".format(self.path,
                                                         self.chiConv,
                                                         self.stdConv,
-                                                        self.updateStd)
+                                                        self.updateStd,
+                                                        self.nGrps)
 
     def __str__(self):
         """!
@@ -278,10 +310,182 @@ class IterativeSTAYSL(object):
             The IterativeSTYASL pointer. \n
         """
 
-        header = ["\IterativeSTYASL:"]
+        header = ["IterativeSTYASL:"]
         header += ["STAYSL Path: {}".format(self.path)]
         header += ["$\chi^2$ Convergence: {}".format(self.chiConv)]
         header += ["Flux Std  Convergence: {}".format(self.stdConv)]
         header += ["Update Flux Std Each Iteration: {}".format(self.updateStd)]
+        header += ["Number of Energy Groups: {}".format(self.nGrps)]
         header = "\n".join(header)+"\n"
         return header
+
+    def find_data(self):
+        """!
+        Finds the start of the output data in a STAYSL file and the $\chi^2$
+        and stores them as class atributes.
+
+        @param self: <em> IterativeSTYASL pointer </em> \n
+            The IterativeSTYASL pointer. \n
+        """
+
+        nline = 0
+        try:
+            f = open(self.path+'stayslin.out', 'r')
+
+            for line in f:
+                nline += 1
+                spltLine = line.strip().split()
+                if len(spltLine) == 7:
+                    if spltLine[3] == 'NORM.':
+                        self._chi2 = float(spltLine[6])
+                if line[0:14] == ' GRP    ENERGY':
+                    self._dataStart = nline
+
+            # Close the file
+            f.close()
+        except IOError as e:
+            print "I/O error({0}): {1}".format(e.errno, e.strerror)
+            
+    def read_output(self):
+        """!
+        Reads the STAYSL output and saves as a DataFrame. 
+
+        Calculated the norm of the uncertainty.
+
+        @param self: <em> IterativeSTYASL pointer </em> \n
+            The IterativeSTYASL pointer. \n
+        """
+
+        self._df = pd.read_table(self.path+'stayslin.out', engine='python',
+                           sep='\s+', skiprows=self._dataStart, skipfooter=649,
+                           header=None,
+                           names=['lowE', 'adjFlux', 'unadjFlux', 'fluxRatio',
+                                  'adjStd', 'unadjStd', 'uncertRatio',
+                                  'integralFlux', 'intFluxUncert'])
+        self._df.apply(pd.to_numeric)
+        self._df['adjFlux'] = bin_integration(self._df['lowE'].tolist(), 
+                                             self._df['adjFlux'].tolist(), 'low')
+        self._df['adjStd'] = self._df['adjStd'] / 100
+        self._stdNorm = np.linalg.norm(self._df['adjStd'].tolist(), self.norm)
+
+    def create_input(self):
+        """!
+        Creates a STAYSL input string using the input and output from the
+        previous run.
+
+        @param self: <em> IterativeSTYASL pointer </em> \n
+            The IterativeSTYASL pointer. \n
+        """
+        self._inpStr = ''
+        dfCol = 'adjStd'
+        try:
+            f = open(self.path+'stayslin.dat', 'r')
+
+            # Skip the first two standard lines
+            self._inpStr += f.next()
+            self._inpStr += f.next()
+
+            for line in f:
+                self._inpStr += line
+
+                # Find the start of the blocks for flux and uncertainty
+                if line.strip().split()[0] == str(self.nGrps):
+                    if dfCol == 'adjFlux':
+                        self._normFactor = float(line.strip().split()[2])
+                    inpData = f.next().strip().split()
+
+                    # Add the new data to the input string
+                    for d in self._df[dfCol]:
+                        if dfCol == 'adjFlux':
+                            self._inpStr += ' {:.4e}'.format(d/self._normFactor)
+                        elif self.updateStd == False and dfCol == 'adjStd':
+                            continue
+                        else:
+                            self._inpStr += ' {:.4e}'.format(d)
+                        inpData.pop(0)
+                        if len(inpData) == 0:
+                            inpData = f.next().strip().split()
+                            self._inpStr += '\n'
+
+                    # Append any 0 flux energy bins to the input
+                    if len(inpData) != 0:
+                        for d in inpData:
+                            self._inpStr += ' ' + d
+                        self._inpStr += '\n'
+                    dfCol = 'adjFlux'
+
+            # Close the file
+            f.close()
+        except IOError as e:
+            print "I/O error({0}): {1}".format(e.errno, e.strerror)
+
+    def write_input_file(self):
+        """!
+        Writes the input file using the created input string.
+
+        @param self: <em> IterativeSTYASL pointer </em> \n
+            The IterativeSTYASL pointer. \n
+        """
+        try:
+            f = open(self.path+'stayslin.dat', 'w')
+
+            f.write(self._inpStr)
+
+            # Close the file
+            f.close()
+        except IOError as e:
+            print "I/O error({0}): {1}".format(e.errno, e.strerror)
+
+    def run(self):
+        """!
+        Runs STAYSL iteratively to find a converged flux. 
+
+        @param self: <em> IterativeSTYASL pointer </em> \n
+            The IterativeSTYASL pointer. \n
+        """
+        prevChi2 = 1E6
+        prevStd = 1E6
+        prevStd = 1E6
+        if check_path(self.path + 'stayslin.out'):
+            self.find_data()
+            self.read_output()
+            print "Chi^2 = {}, Std Norm = {}".format(self._chi2, self._stdNorm)
+
+        # Iterate until Chi2 is converged
+        while abs(prevChi2-self._chi2) > self.chiConv:
+            prevChi2 = self._chi2
+            self._iteration()
+            print "Chi^2 = {}".format(self._chi2)
+
+        # Iterate until the uncertainty is converged
+        self.updateStd = True
+        while abs(prevStd-self._stdNorm) > self.stdConv:
+            prevStd = self._stdNorm
+            self._iteration()
+            print "Std Norm = {}, {}".format(self._stdNorm, prevStd)
+            
+    def _iteration(self):
+        """!
+        Performs a STAYSL iteration. 
+
+        @param self: <em> IterativeSTYASL pointer </em> \n
+            The IterativeSTYASL pointer. \n
+        """
+
+        # Read output and create next input
+        if check_path(self.path + 'stayslin.out', printOut=False):
+            self.create_input()
+            self.write_input_file()
+
+        # Run STAYSL
+        p = Popen(['STAYSL_PNNL.exe'], stdout=PIPE, stdin=PIPE, stderr=STDOUT) 
+        p_stdout = p.communicate(input='\n\n')[0]
+        p.wait()
+        if p.returncode != 0:
+            print "ERROR:STAYSL did not execute correctly!"
+            sys.exit()
+
+        # Read ouput
+        self.find_data()
+        self.read_output()
+
