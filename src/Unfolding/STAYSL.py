@@ -160,6 +160,102 @@ def bcmToBCF(bcmPath, outPath='flux_history.dat', timeOut='cumulative',
           'measurement of {}.'.format(totTime, totMeas)
 
 #------------------------------------------------------------------------------#
+def integralXSecEst(firPath, numRx, firName='stayslin.out',
+                    xSecName='xsectlib_140.dat'):
+    """
+    @ingroup STAYSL
+    Calculates the integral cross section values for the SigPhiCalculator. 
+    The results are printed to the screen to be enetered into the
+    SigPhiCalculator.
+    
+    Parameters
+    ==========
+    @param firPath: \e string \n
+        Absolute path to the directory containing the FIR output and cross
+        section file. \n
+    @param numRx: \e integer \n
+        The number of reactions used for the FIR calculation. \n
+    @param firName: \e string \n
+        Name of the FIR output file. \n
+    @param xSecName: \e string \n
+        Name of the cross section file. \n
+    """
+
+    # Open FIR output file
+    try:
+        f = open(firPath+firName, 'r')
+
+        # Skip the header
+        for i in range(0, 4):
+            f.next()
+
+        # Read in the RX names
+        rxNames = []
+        for i in range(0, numRx):
+            splt = f.next().strip().split()
+            rxNames.append(splt[0])
+        
+        # Read in flux
+        start = []
+        flux = []
+        ebin = []
+        for line in f:
+            splt = line.strip().split()
+
+            if len(splt) > 0:
+                if splt[0] == 'GRP':
+                    splt = f.next().strip().split()
+                    while len(splt) > 3:
+                        ebin.append(float(splt[1]))
+                        flux.append(float(splt[2]))
+                        if (float(splt[1]) >= 5.500E-07 and len(start) == 0) \
+                           or (float(splt[1]) >= 0.1 and len(start) == 1) \
+                           or (float(splt[1]) >= 1 and len(start) == 2):
+                            start.append(int(splt[0])-1)
+                        splt = f.next().strip().split()
+
+        # Close the file
+        f.close()
+    except IOError as e:
+        print "I/O error({0}): {1}".format(e.errno, e.strerror)
+
+    # Integrate out per MeV and normalize
+    flux = bin_integration(ebin, flux, 'low')
+    print "The epithermal/thermal ratio is: {}\n".format(
+                                           sum(flux[start[0]:start[1]])\
+                                           /sum(flux[:start[0]]))
+    flux = np.asarray(flux)/sum(flux)
+
+    # Open XSec file
+    try:
+        f = open(firPath+xSecName, 'r')
+
+        for line in f:
+            splt = line.strip().split()
+
+            # Store cross section
+            if splt[0] in rxNames:
+                print splt[0]
+                xSec = []
+                for i in range(0,20):
+                    splt = f.next().strip().split()
+                    for xs in splt:
+                        xSec.append(float(xs))
+
+                #Calculate integrals           
+                print 'The > 0.1 flux weighted sigma is: {}'.format(
+                                sum(np.asarray(xSec[start[1]:]) \
+                                *np.asarray(flux[start[1]:])))
+                print 'The > 1 flux weighted sigma is: {}'.format(
+                                sum(np.asarray(xSec[start[2]:]) \
+                                *np.asarray(flux[start[2]:])))
+
+        # Close the file
+        f.close()
+    except IOError as e:
+        print "I/O error({0}): {1}".format(e.errno, e.strerror)
+        
+#------------------------------------------------------------------------------#
 def stayslFlux(df, fluxName='tally', uncertName='uncertainty',
                maxBinAdjust=0, adjFlux=0.0, adjUncert=0.0):
     """
