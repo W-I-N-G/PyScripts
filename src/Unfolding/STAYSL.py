@@ -122,7 +122,7 @@ def bcmToBCF(bcmPath, outPath='flux_history.dat', timeOut='cumulative',
             # Store in BCF format
             deltaT = (curTime-prevTime).total_seconds()
             totTime += deltaT
-            totMeas += curMeas
+            totMeas += curMeas * deltaT
             if ntype == 0:
                 tmpOut += '     {:.2f}          {:.9f}\n'.format(deltaT, curMeas)
             if ntype == 1:
@@ -156,7 +156,7 @@ def bcmToBCF(bcmPath, outPath='flux_history.dat', timeOut='cumulative',
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
     
     # Print output
-    print 'The total measurment time was {} seconds with an integrated ' \
+    print 'The total measurement time was {} seconds with an integrated ' \
           'measurement of {}.'.format(totTime, totMeas)
 
 #------------------------------------------------------------------------------#
