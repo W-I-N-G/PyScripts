@@ -11,10 +11,10 @@
 @date 17July17
 """
 
-from math import sqrt
+from math import sqrt, log
 
 #------------------------------------------------------------------------------#
-def bin_integration(edges, data, edgeLoc="low"):
+def bin_integration(edges, data, edgeLoc="low", lethargy=False):
     """!
     @ingroup DataManipulation
 
@@ -31,6 +31,8 @@ def bin_integration(edges, data, edgeLoc="low"):
     @param edgeLoc: \e string \n
         Indicator for the location of the energy boundary edges.  Options
         are "low", "mid", or "up"
+    @param lethargy: \e boolean \n
+        Specifies whether the integration is done with logarithmic bins. \n
 
     @return <em> list of floats </em>: The integrated data
     """
@@ -40,18 +42,22 @@ def bin_integration(edges, data, edgeLoc="low"):
     edges = check_data(edges, data, edgeLoc)
 
     # Integrate according to the type of binning provided
-    for i in range(0, len(data)):
-        f.append((edges[i+1]-edges[i])*data[i])
+    if lethargy:
+        for i in range(0, len(data)):
+            f.append(log(edges[i+1]/edges[i])*data[i])
+    else:
+        for i in range(0, len(data)):
+            f.append((edges[i+1]-edges[i])*data[i])
 
     return f
 
 #------------------------------------------------------------------------------#
-def bin_differentiation(edges, data, edgeLoc="low"):
+def bin_differentiation(edges, data, edgeLoc="low", lethargy=False):
     """!
     @ingroup DataManipulation
 
-    Integrates binned data.  Can be used, for example, to convert from
-    differential flux to flux.  Valid for binned data with edge or midpoint
+    Differentiates binned data.  Can be used, for example, to convert from
+    flux to differntial flux.  Valid for binned data with edge or midpoint
     values if properly specified in the inputs.
 
     @param edges: <em> list or array of floats </em> \n
@@ -63,6 +69,9 @@ def bin_differentiation(edges, data, edgeLoc="low"):
     @param edgeLoc: \e string \n
         Indicator for the location of the energy boundary edges.  Options
         are "low", "mid", or "up". \n
+    @param lethargy: \e boolean \n
+        Specifies whether to take the differential as a function of
+        ln(dBin). \n
 
     @return <em> list of floats </em>: The differentiated data
     """
@@ -71,10 +80,23 @@ def bin_differentiation(edges, data, edgeLoc="low"):
 
     edges = check_data(edges, data, edgeLoc)
 
-    # Integrate according to the type of binning provided
-    for i in range(0, len(data)):
-        f.append(data[i]/(edges[i+1]-edges[i]))
-
+    # Differntiate bin by bin
+    if edgeLoc == 'low':
+        for i in range(0, len(data)):
+            if lethargy:
+                f.append(data[i]/log(edges[i+1]/float(edges[i])))
+            else:
+                f.append(data[i]/(edges[i+1]-edges[i]))
+    if edgeLoc == 'up':
+        if lethargy:
+            if edges[0] <=0:
+                edges[0] = 1E-10
+        for i in range(1, len(data)+1):
+            if lethargy:
+                f.append(data[i-1]/log(edges[i]/float(edges[i-1])))
+            else:
+                f.append(data[i-1]/(edges[i]-edges[i-1]))
+        
     return f
 
 #------------------------------------------------------------------------------#
