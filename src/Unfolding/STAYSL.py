@@ -459,6 +459,7 @@ class IterativeSTAYSL(object):
                                   'adjStd', 'unadjStd', 'uncertRatio',
                                   'integralFlux', 'intFluxUncert'])
         self._df.apply(pd.to_numeric)
+        self._df['adjDiff'] = self._df['adjFlux'].tolist()
         self._df['adjFlux'] = bin_integration(self._df['lowE'].tolist(), 
                                              self._df['adjFlux'].tolist(), 'low')
         self._df['adjStd'] = self._df['adjStd'] / 100
